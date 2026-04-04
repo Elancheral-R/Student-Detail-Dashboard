@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — SIS</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<div class="app-shell">
+
+  <!-- Sidebar (injected) -->
+  <div id="sidebar-container"></div>
+
+  <!-- Main -->
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="hamburger" id="hamburger"><span></span><span></span><span></span></button>
+        <div>
+          <div class="topbar-title">Dashboard</div>
+          <div class="topbar-breadcrumb">Home › Overview</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <span id="topbar-date" style="font-size:.82rem;color:var(--text-muted)"></span>
+      </div>
+    </header>
+
+    <main class="page-content">
+      <div class="page-header">
+        <div class="page-header-left">
+          <h2>Welcome back, <span id="welcome-name">—</span> 👋</h2>
+          <p>Here's what's happening in your institution today.</p>
+        </div>
+      </div>
+
+      <!-- Stat Cards -->
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon navy">🎓</div>
+          <div class="stat-value" id="stat-students">—</div>
+          <div class="stat-label">Total Students</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon amber">📚</div>
+          <div class="stat-value" id="stat-courses">—</div>
+          <div class="stat-label">Active Courses</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green">✅</div>
+          <div class="stat-value" id="stat-enrollments">—</div>
+          <div class="stat-label">Enrollments</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon red">💰</div>
+          <div class="stat-value" id="stat-fees">—</div>
+          <div class="stat-label">Fee Pending (₹)</div>
+        </div>
+      </div>
+
+      <!-- Two-column lower section -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:.5rem;" id="lower-grid">
+
+        <!-- Year-wise distribution -->
+        <div class="card">
+          <div class="card-header"><h3>📊 Year-wise Students</h3></div>
+          <div class="card-body" id="year-chart">
+            <div class="loading-overlay"><div class="spinner"></div></div>
+          </div>
+        </div>
+
+        <!-- Quick Links -->
+        <div class="card">
+          <div class="card-header"><h3>⚡ Quick Actions</h3></div>
+          <div class="card-body">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
+              <a href="students.html" class="btn btn-outline" style="justify-content:center;">➕ Add Student</a>
+              <a href="courses.html" class="btn btn-outline" style="justify-content:center;">📚 Add Course</a>
+              <a href="attendance.html" class="btn btn-outline" style="justify-content:center;">📋 Mark Attendance</a>
+              <a href="marks.html" class="btn btn-outline" style="justify-content:center;">📝 Enter Marks</a>
+              <a href="fees.html" class="btn btn-outline" style="justify-content:center;">💰 Record Fee</a>
+              <a href="timetable.html" class="btn btn-outline" style="justify-content:center;">🕐 Timetable</a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="../js/api.js"></script>
+<script>
+  // Auth guard
+  if (!Auth.isLoggedIn()) window.location.href = '../index.html';
+
+  // Load sidebar
+  fetch('_sidebar.html').then(r => r.text()).then(html => {
+    document.getElementById('sidebar-container').innerHTML = html;
+    initSidebar();
+  });
+
+  // Welcome message
+  document.getElementById('welcome-name').textContent = Auth.getUser()?.split(' ')[0] || 'User';
+  document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('en-IN', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
+
+  // Load stats
+  async function loadStats() {
+    try {
+      const s = await API.dashboard.stats();
+      document.getElementById('stat-students').textContent    = s.totalStudents;
+      document.getElementById('stat-courses').textContent     = s.totalCourses;
+      document.getElementById('stat-enrollments').textContent = s.totalEnrollments;
+      document.getElementById('stat-fees').textContent        = fmtCurrency(s.totalFeePending).replace('₹','').trim();
+
+      // Year-wise bar chart (pure CSS)
+      const max = Math.max(s.year1Students, s.year2Students, s.year3Students, s.year4Students, 1);
+      const yearEl = document.getElementById('year-chart');
+      yearEl.innerHTML = [1,2,3,4].map(yr => {
+        const count = s[`year${yr}Students`] || 0;
+        const pct = Math.round((count / max) * 100);
+        return `
+          <div style="margin-bottom:1rem;">
+            <div style="display:flex;justify-content:space-between;font-size:.85rem;margin-bottom:.3rem;">
+              <span>Year ${yr}</span>
+              <strong>${count} students</strong>
+            </div>
+            <div class="progress">
+              <div class="progress-bar" style="width:${pct}%"></div>
+            </div>
+          </div>`;
+      }).join('');
+    } catch (err) {
+      toast('Could not load dashboard stats: ' + err.message, 'error');
+    }
+  }
+
+  loadStats();
+
+  // Responsive lower grid
+  if (window.innerWidth < 700) {
+    document.getElementById('lower-grid').style.gridTemplateColumns = '1fr';
+  }
+</script>
+</body>
+</html>

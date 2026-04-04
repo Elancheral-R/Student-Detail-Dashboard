@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Fee Management — SIS</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<div class="app-shell">
+  <div id="sidebar-container"></div>
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="hamburger" id="hamburger"><span></span><span></span><span></span></button>
+        <div><div class="topbar-title">Fee Management</div><div class="topbar-breadcrumb">Home › Fees</div></div>
+      </div>
+    </header>
+    <main class="page-content">
+      <div class="page-header">
+        <div class="page-header-left"><h2>Fee Management</h2><p>Track fee payments, pending dues, and receipts</p></div>
+        <button class="btn btn-primary" id="add-fee-btn" onclick="openModal('fee-modal')">➕ Create Fee Record</button>
+      </div>
+
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="tab-student-fee">👤 By Student</button>
+        <button class="tab-btn" data-tab="tab-pending">⏳ Pending Fees</button>
+      </div>
+
+      <!-- By Student -->
+      <div class="tab-pane active" id="tab-student-fee">
+        <div class="filter-bar">
+          <select class="form-control form-select" id="fee-student-select"><option value="">— Select Student —</option></select>
+          <button class="btn btn-primary" onclick="loadStudentFees()">Load Fees</button>
+        </div>
+        <div id="student-fee-view">
+          <div class="empty-state"><div class="empty-icon">💰</div><h3>Select a student to view fees</h3></div>
+        </div>
+      </div>
+
+      <!-- Pending Fees -->
+      <div class="tab-pane" id="tab-pending">
+        <div class="card">
+          <div class="card-header"><h3>Pending Fee Records</h3><button class="btn btn-outline btn-sm" onclick="loadPending()">🔄 Refresh</button></div>
+          <div class="table-wrapper">
+            <table>
+              <thead><tr><th>Student</th><th>Fee Type</th><th>Amount</th><th>Paid</th><th>Balance</th><th>Due Date</th><th>Status</th><th>Action</th></tr></thead>
+              <tbody id="pending-tbody"><tr><td colspan="8"><div class="loading-overlay"><div class="spinner"></div></div></td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Create Fee Modal -->
+<div class="modal-overlay" id="fee-modal">
+  <div class="modal">
+    <div class="modal-header"><h3>Create Fee Record</h3><button class="modal-close" onclick="closeModal('fee-modal')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-grid-2">
+        <div class="form-group span-2"><label>Student *</label><select class="form-control form-select" id="f-student"><option value="">— Select Student —</option></select></div>
+        <div class="form-group"><label>Fee Type *</label>
+          <select class="form-control form-select" id="f-type">
+            <option value="TUITION">Tuition</option><option value="HOSTEL">Hostel</option>
+            <option value="TRANSPORT">Transport</option><option value="EXAM">Exam</option><option value="MISC">Miscellaneous</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Amount (₹) *</label><input type="number" class="form-control" id="f-amount" min="1" placeholder="50000"></div>
+        <div class="form-group"><label>Due Date</label><input type="date" class="form-control" id="f-due"></div>
+        <div class="form-group"><label>Academic Year *</label><input type="text" class="form-control" id="f-year" value="2024-25" placeholder="2024-25"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('fee-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="createFee()">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- Payment Modal -->
+<div class="modal-overlay" id="pay-modal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header"><h3>💳 Record Payment</h3><button class="modal-close" onclick="closeModal('pay-modal')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="pay-fee-id">
+      <div class="form-group"><label>Amount (₹) *</label><input type="number" class="form-control" id="pay-amount" min="1" placeholder="25000"></div>
+      <div class="form-group"><label>Payment Method</label>
+        <select class="form-control form-select" id="pay-method">
+          <option value="CASH">Cash</option><option value="CARD">Card</option>
+          <option value="UPI">UPI</option><option value="BANK_TRANSFER">Bank Transfer</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('pay-modal')">Cancel</button>
+      <button class="btn btn-success" onclick="recordPayment()">✅ Confirm Payment</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="../js/api.js"></script>
+<script>
+  if (!Auth.isLoggedIn()) window.location.href='../index.html';
+  fetch('_sidebar.html').then(r=>r.text()).then(h=>{ document.getElementById('sidebar-container').innerHTML=h; initSidebar(); });
+  initTabs();
+
+  // Hide Create Fee and Pay bounds from non-admin
+  if (Auth.getRole() !== 'ADMIN') {
+    document.getElementById('add-fee-btn').style.display = 'none';
+  }
+
+  async function loadStudents() {
+    try {
+      const students = await API.students.getAll();
+      ['fee-student-select','f-student'].forEach(id=>{
+        const sel = document.getElementById(id);
+        students.forEach(s=>{ const o=document.createElement('option'); o.value=s.id; o.textContent=`${s.studentId} — ${s.firstName} ${s.lastName}`; sel.appendChild(o); });
+      });
+    } catch(e) {}
+  }
+
+  async function loadStudentFees() {
+    const sid = document.getElementById('fee-student-select').value;
+    if (!sid) { toast('Select a student','warning'); return; }
+    const view = document.getElementById('student-fee-view');
+    view.innerHTML = '<div class="loading-overlay"><div class="spinner"></div></div>';
+    try {
+      const [fees, balance] = await Promise.all([API.fees.byStudent(sid), API.fees.balance(sid)]);
+      view.innerHTML = `
+        <div class="stats-grid" style="margin-bottom:1.25rem">
+          <div class="stat-card"><div class="stat-icon green">✅</div><div class="stat-value">${fees.filter(f=>f.status==='PAID').length}</div><div class="stat-label">Paid</div></div>
+          <div class="stat-card"><div class="stat-icon red">⏳</div><div class="stat-value">${fees.filter(f=>f.status!=='PAID').length}</div><div class="stat-label">Pending</div></div>
+          <div class="stat-card"><div class="stat-icon amber">💰</div><div class="stat-value" style="font-size:1.2rem">${fmtCurrency(balance.totalPending)}</div><div class="stat-label">Total Due</div></div>
+        </div>
+        <div class="card">
+          <div class="table-wrapper">
+            <table>
+              <thead><tr><th>Type</th><th>Year</th><th>Amount</th><th>Paid</th><th>Balance</th><th>Due</th><th>Status</th><th>Receipt</th><th>Action</th></tr></thead>
+              <tbody>
+                ${fees.length ? fees.map(f=>`
+                  <tr>
+                    <td>${f.feeType}</td>
+                    <td>${f.academicYear}</td>
+                    <td>${fmtCurrency(f.amount)}</td>
+                    <td>${fmtCurrency(f.amountPaid)}</td>
+                    <td><strong>${fmtCurrency(f.amount-f.amountPaid)}</strong></td>
+                    <td>${fmtDate(f.dueDate)}</td>
+                    <td>${statusBadge(f.status)}</td>
+                    <td>${f.receiptNo?`<code style="font-size:.75rem">${f.receiptNo}</code>`:'—'}</td>
+                    <td>
+                      ${f.status!=='PAID' ? 
+                        (Auth.getRole()==='ADMIN' ? `<button class="btn btn-sm btn-success" onclick="openPayModal(${f.id},${f.amount-f.amountPaid})">Pay</button>` : '<span style="color:var(--warning);font-size:.85rem">⏳ Pending</span>') 
+                        : '<span style="color:var(--success);font-size:.85rem">✅ Paid</span>'}
+                    </td>
+                  </tr>`).join('') : '<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">💰</div><h3>No fee records</h3></div></td></tr>'}
+              </tbody>
+            </table>
+          </div>
+        </div>`;
+    } catch(e) { toast(e.message,'error'); }
+  }
+
+  async function loadPending() {
+    try {
+      const fees = await API.fees.pending();
+      const tbody = document.getElementById('pending-tbody');
+      if (!fees.length) { tbody.innerHTML='<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🎉</div><h3>No pending fees!</h3></div></td></tr>'; return; }
+      tbody.innerHTML = fees.map(f=>`
+        <tr>
+          <td>${f.student.firstName} ${f.student.lastName}</td>
+          <td>${f.feeType}</td>
+          <td>${fmtCurrency(f.amount)}</td>
+          <td>${fmtCurrency(f.amountPaid)}</td>
+          <td><strong style="color:var(--danger)">${fmtCurrency(f.amount-f.amountPaid)}</strong></td>
+          <td>${fmtDate(f.dueDate)}</td>
+          <td>${statusBadge(f.status)}</td>
+          <td>${Auth.getRole()==='ADMIN' ? `<button class="btn btn-sm btn-success" onclick="openPayModal(${f.id},${f.amount-f.amountPaid})">Pay</button>` : '—'}</td>
+        </tr>`).join('');
+    } catch(e) { toast(e.message,'error'); }
+  }
+
+  function openPayModal(feeId, balance) {
+    document.getElementById('pay-fee-id').value = feeId;
+    document.getElementById('pay-amount').value = balance;
+    openModal('pay-modal');
+  }
+
+  async function recordPayment() {
+    const feeId  = document.getElementById('pay-fee-id').value;
+    const amount = parseFloat(document.getElementById('pay-amount').value);
+    const method = document.getElementById('pay-method').value;
+    if (!amount || amount <= 0) { toast('Enter valid amount','warning'); return; }
+    try {
+      await API.fees.pay(feeId, { amount, method });
+      toast('Payment recorded successfully','success');
+      closeModal('pay-modal');
+      loadPending();
+      const sid = document.getElementById('fee-student-select').value;
+      if (sid) loadStudentFees();
+    } catch(e) { toast(e.message,'error'); }
+  }
+
+  async function createFee() {
+    const payload = {
+      studentId:    parseInt(document.getElementById('f-student').value),
+      feeType:      document.getElementById('f-type').value,
+      amount:       parseFloat(document.getElementById('f-amount').value),
+      dueDate:      document.getElementById('f-due').value || null,
+      academicYear: document.getElementById('f-year').value,
+    };
+    if (!payload.studentId) { toast('Select a student','warning'); return; }
+    try {
+      await API.fees.create(payload);
+      toast('Fee record created','success');
+      closeModal('fee-modal');
+      loadPending();
+    } catch(e) { toast(e.message,'error'); }
+  }
+
+  loadStudents();
+  loadPending();
+</script>
+</body>
+</html>

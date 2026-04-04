@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Students — SIS</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<div class="app-shell">
+  <div id="sidebar-container"></div>
+
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="hamburger" id="hamburger"><span></span><span></span><span></span></button>
+        <div>
+          <div class="topbar-title">Students</div>
+          <div class="topbar-breadcrumb">Home › Student Management</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="topbar-search">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="global-search" placeholder="Search students…">
+        </div>
+      </div>
+    </header>
+
+    <main class="page-content">
+      <div class="page-header">
+        <div class="page-header-left">
+          <h2>Student Management</h2>
+          <p>Add, edit, and manage student records</p>
+        </div>
+        <button class="btn btn-primary" id="add-student-btn" onclick="openModal('student-modal')">➕ Add Student</button>
+      </div>
+
+      <!-- Filter bar -->
+      <div class="filter-bar">
+        <input type="text" class="form-control" id="search-input" placeholder="🔍 Search by name, ID, email…">
+        <select class="form-control form-select" id="dept-filter">
+          <option value="">All Departments</option>
+        </select>
+        <select class="form-control form-select" id="year-filter">
+          <option value="">All Years</option>
+          <option value="1">Year 1</option>
+          <option value="2">Year 2</option>
+          <option value="3">Year 3</option>
+          <option value="4">Year 4</option>
+        </select>
+        <button class="btn btn-outline btn-sm" onclick="loadStudents()">🔄 Refresh</button>
+      </div>
+
+      <!-- Table -->
+      <div class="card">
+        <div class="card-header">
+          <h3>All Students</h3>
+          <span id="student-count" style="font-size:.85rem;color:var(--text-muted)"></span>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Student ID</th>
+                <th>Department</th>
+                <th>Year</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="student-tbody">
+              <tr><td colspan="8"><div class="loading-overlay"><div class="spinner"></div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Add/Edit Student Modal -->
+<div class="modal-overlay" id="student-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-title">Add New Student</h3>
+      <button class="modal-close" onclick="closeModal('student-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="student-form">
+        <input type="hidden" id="student-id">
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label>First Name *</label>
+            <input type="text" class="form-control" id="s-firstname" required placeholder="Arjun">
+          </div>
+          <div class="form-group">
+            <label>Last Name *</label>
+            <input type="text" class="form-control" id="s-lastname" required placeholder="Kumar">
+          </div>
+          <div class="form-group span-2">
+            <label>Email *</label>
+            <input type="email" class="form-control" id="s-email" required placeholder="arjun@student.edu">
+          </div>
+          <div class="form-group">
+            <label>Phone</label>
+            <input type="tel" class="form-control" id="s-phone" placeholder="9000001111">
+          </div>
+          <div class="form-group">
+            <label>Date of Birth</label>
+            <input type="date" class="form-control" id="s-dob">
+          </div>
+          <div class="form-group">
+            <label>Gender</label>
+            <select class="form-control form-select" id="s-gender">
+              <option value="">— Select —</option>
+              <option value="MALE">Male</option>
+              <option value="FEMALE">Female</option>
+              <option value="OTHER">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Year of Study *</label>
+            <select class="form-control form-select" id="s-year" required>
+              <option value="1">Year 1</option>
+              <option value="2">Year 2</option>
+              <option value="3">Year 3</option>
+              <option value="4">Year 4</option>
+            </select>
+          </div>
+          <div class="form-group span-2">
+            <label>Department *</label>
+            <select class="form-control form-select" id="s-department" required>
+              <option value="">— Select Department —</option>
+            </select>
+          </div>
+          <div class="form-group span-2">
+            <label>Address</label>
+            <textarea class="form-control" id="s-address" rows="2" placeholder="Street, City, State"></textarea>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('student-modal')">Cancel</button>
+      <button class="btn btn-primary" id="save-student-btn" onclick="saveStudent()">Save Student</button>
+    </div>
+  </div>
+</div>
+
+<!-- View Student Modal -->
+<div class="modal-overlay" id="view-modal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <h3>Student Details</h3>
+      <button class="modal-close" onclick="closeModal('view-modal')">✕</button>
+    </div>
+    <div class="modal-body" id="view-modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('view-modal')">Close</button>
+      <a href="marks.html" class="btn btn-primary">📝 View Report</a>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="../js/api.js"></script>
+<script>
+  if (!Auth.isLoggedIn()) window.location.href = '../index.html';
+  fetch('_sidebar.html').then(r=>r.text()).then(h=>{ document.getElementById('sidebar-container').innerHTML=h; initSidebar(); });
+
+  // Hide write actions for STUDENTS
+  if (Auth.getRole() === 'STUDENT') {
+    document.getElementById('add-student-btn').style.display = 'none';
+  }
+
+  let allStudents = [];
+  const depts = [
+    {id:1,name:'Computer Science & Engineering',code:'CSE'},
+    {id:2,name:'Electronics & Communication',code:'ECE'},
+    {id:3,name:'Mechanical Engineering',code:'MECH'},
+    {id:4,name:'Civil Engineering',code:'CIVIL'},
+    {id:5,name:'Information Technology',code:'IT'}
+  ];
+
+  // Populate dept selects
+  function populateDeptSelects() {
+    ['dept-filter','s-department'].forEach(id => {
+      const el = document.getElementById(id);
+      depts.forEach(d => {
+        const o = document.createElement('option');
+        o.value = d.id; o.textContent = d.name;
+        el.appendChild(o);
+      });
+    });
+  }
+  populateDeptSelects();
+
+  async function loadStudents() {
+    showLoading('student-tbody');
+    try {
+      allStudents = await API.students.getAll();
+      renderTable(allStudents);
+    } catch(err) { toast(err.message, 'error'); }
+  }
+
+  function renderTable(students) {
+    document.getElementById('student-count').textContent = `${students.length} records`;
+    const tbody = document.getElementById('student-tbody');
+    if (!students.length) {
+      tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🎓</div><h3>No students found</h3></div></td></tr>';
+      return;
+    }
+    tbody.innerHTML = students.map(s => `
+      <tr>
+        <td>
+          <div class="avatar-cell">
+            <div class="table-avatar">${initials(s.firstName+' '+s.lastName)}</div>
+            <div>
+              <div style="font-weight:600">${s.firstName} ${s.lastName}</div>
+              <div style="font-size:.78rem;color:var(--text-muted)">${s.gender || ''}</div>
+            </div>
+          </div>
+        </td>
+        <td><code style="background:var(--ivory);padding:.15rem .4rem;border-radius:4px;font-size:.82rem">${s.studentId}</code></td>
+        <td>${s.department?.code || '—'}</td>
+        <td><span class="badge badge-navy">Year ${s.yearOfStudy}</span></td>
+        <td>${s.email}</td>
+        <td>${s.phone || '—'}</td>
+        <td>${statusBadge(s.active ? 'ACTIVE' : 'DROPPED')}</td>
+        <td>
+          <div class="table-actions">
+            <button class="btn btn-outline btn-sm" onclick="viewStudent(${s.id})">👁</button>
+            ${Auth.getRole() !== 'STUDENT' ? `<button class="btn btn-outline btn-sm" onclick="editStudent(${s.id})">✏️</button>` : ''}
+            ${Auth.getRole()==='ADMIN' ? `<button class="btn btn-sm" style="background:var(--danger-bg);color:var(--danger)" onclick="deleteStudent(${s.id})">🗑</button>` : ''}
+          </div>
+        </td>
+      </tr>`).join('');
+  }
+
+  // Search + filter
+  function applyFilters() {
+    const q    = document.getElementById('search-input').value.toLowerCase();
+    const dept = document.getElementById('dept-filter').value;
+    const year = document.getElementById('year-filter').value;
+    const filtered = allStudents.filter(s => {
+      const matchQ    = !q    || `${s.firstName} ${s.lastName} ${s.email} ${s.studentId}`.toLowerCase().includes(q);
+      const matchDept = !dept || String(s.department?.id) === dept;
+      const matchYear = !year || String(s.yearOfStudy) === year;
+      return matchQ && matchDept && matchYear;
+    });
+    renderTable(filtered);
+  }
+
+  document.getElementById('search-input').addEventListener('input', debounce(applyFilters));
+  document.getElementById('global-search').addEventListener('input', debounce(e => {
+    document.getElementById('search-input').value = e.target.value; applyFilters();
+  }));
+  document.getElementById('dept-filter').addEventListener('change', applyFilters);
+  document.getElementById('year-filter').addEventListener('change', applyFilters);
+
+  // View student
+  function viewStudent(id) {
+    const s = allStudents.find(x => x.id === id);
+    if (!s) return;
+    document.getElementById('view-modal-body').innerHTML = `
+      <div style="text-align:center;margin-bottom:1.5rem">
+        <div style="width:70px;height:70px;border-radius:50%;background:var(--navy);color:var(--amber);display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:700;margin:0 auto .75rem">${initials(s.firstName+' '+s.lastName)}</div>
+        <h3 style="margin:0">${s.firstName} ${s.lastName}</h3>
+        <p style="color:var(--text-muted);font-size:.88rem">${s.studentId}</p>
+      </div>
+      <table style="width:100%;font-size:.9rem">
+        ${[['Email',s.email],['Phone',s.phone||'—'],['Department',s.department?.name||'—'],
+           ['Year',`Year ${s.yearOfStudy}`],['DOB',fmtDate(s.dob)],['Gender',s.gender||'—'],
+           ['Admission',fmtDate(s.admissionDate)],['Address',s.address||'—']]
+          .map(([k,v])=>`<tr><td style="color:var(--text-muted);padding:.4rem 0;width:120px">${k}</td><td style="font-weight:500">${v}</td></tr>`).join('')}
+      </table>`;
+    openModal('view-modal');
+  }
+
+  // Edit
+  function editStudent(id) {
+    const s = allStudents.find(x => x.id === id);
+    if (!s) return;
+    document.getElementById('modal-title').textContent = 'Edit Student';
+    document.getElementById('student-id').value   = s.id;
+    document.getElementById('s-firstname').value  = s.firstName;
+    document.getElementById('s-lastname').value   = s.lastName;
+    document.getElementById('s-email').value      = s.email;
+    document.getElementById('s-email').disabled   = true;
+    document.getElementById('s-phone').value      = s.phone || '';
+    document.getElementById('s-dob').value        = s.dob || '';
+    document.getElementById('s-gender').value     = s.gender || '';
+    document.getElementById('s-year').value       = s.yearOfStudy;
+    document.getElementById('s-department').value = s.department?.id || '';
+    document.getElementById('s-address').value    = s.address || '';
+    openModal('student-modal');
+  }
+
+  // Save (create or update)
+  async function saveStudent() {
+    const id = document.getElementById('student-id').value;
+    const payload = {
+      firstName:   document.getElementById('s-firstname').value.trim(),
+      lastName:    document.getElementById('s-lastname').value.trim(),
+      email:       document.getElementById('s-email').value.trim(),
+      phone:       document.getElementById('s-phone').value.trim(),
+      dob:         document.getElementById('s-dob').value || null,
+      gender:      document.getElementById('s-gender').value || null,
+      yearOfStudy: parseInt(document.getElementById('s-year').value),
+      department:  { id: parseInt(document.getElementById('s-department').value) },
+      address:     document.getElementById('s-address').value.trim(),
+    };
+    const btn = document.getElementById('save-student-btn');
+    btn.disabled = true; btn.textContent = 'Saving…';
+    try {
+      if (id) {
+        await API.students.update(id, payload);
+        toast('Student updated successfully', 'success');
+      } else {
+        await API.students.create(payload);
+        toast('Student added successfully', 'success');
+      }
+      closeModal('student-modal');
+      resetForm();
+      loadStudents();
+    } catch(err) { toast(err.message, 'error'); }
+    btn.disabled = false; btn.textContent = 'Save Student';
+  }
+
+  // Delete
+  async function deleteStudent(id) {
+    if (!confirm('Soft-delete this student? Their records will be preserved.')) return;
+    try {
+      await API.students.delete(id);
+      toast('Student deactivated', 'warning');
+      loadStudents();
+    } catch(err) { toast(err.message, 'error'); }
+  }
+
+  function resetForm() {
+    document.getElementById('student-form').reset();
+    document.getElementById('student-id').value = '';
+    document.getElementById('modal-title').textContent = 'Add New Student';
+    document.getElementById('s-email').disabled = false;
+  }
+
+  document.getElementById('student-modal').querySelector('.modal-overlay')?.addEventListener('click', resetForm);
+
+  loadStudents();
+</script>
+</body>
+</html>

@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Marks & Grades — SIS</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    @media print {
+      .sidebar, .topbar, .tabs, .filter-bar, .btn, #toast-container { display:none!important; }
+      .main-content { margin-left:0!important; }
+      .card { box-shadow:none!important; border:1px solid #ccc!important; }
+    }
+  </style>
+</head>
+<body>
+<div class="app-shell">
+  <div id="sidebar-container"></div>
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="hamburger" id="hamburger"><span></span><span></span><span></span></button>
+        <div><div class="topbar-title">Marks & Grades</div><div class="topbar-breadcrumb">Home › Examination</div></div>
+      </div>
+    </header>
+    <main class="page-content">
+      <div class="page-header">
+        <div class="page-header-left"><h2>Marks &amp; Report Card</h2><p>Enter marks, calculate grades, generate reports</p></div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab-btn active" id="tab-btn-enter" data-tab="tab-enter">📝 Enter Marks</button>
+        <button class="tab-btn" id="tab-btn-report" data-tab="tab-report">📄 Report Card</button>
+      </div>
+
+      <!-- Enter Marks -->
+      <div class="tab-pane active" id="tab-enter">
+        <div class="card" style="margin-bottom:1.5rem">
+          <div class="card-header"><h3>Enter Examination Marks</h3></div>
+          <div class="card-body">
+            <div class="form-grid-2" style="max-width:700px">
+              <div class="form-group">
+                <label>Student *</label>
+                <select class="form-control form-select" id="m-student"><option value="">— Select —</option></select>
+              </div>
+              <div class="form-group">
+                <label>Course *</label>
+                <select class="form-control form-select" id="m-course"><option value="">— Select —</option></select>
+              </div>
+              <div class="form-group">
+                <label>Exam Type *</label>
+                <select class="form-control form-select" id="m-type">
+                  <option value="INTERNAL1">Internal 1</option>
+                  <option value="INTERNAL2">Internal 2</option>
+                  <option value="MIDTERM">Midterm</option>
+                  <option value="FINAL">Final</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Max Marks *</label>
+                <input type="number" class="form-control" id="m-max" value="100" min="1">
+              </div>
+              <div class="form-group">
+                <label>Marks Obtained *</label>
+                <input type="number" class="form-control" id="m-obtained" min="0" placeholder="75">
+              </div>
+              <div class="form-group">
+                <label>Remarks</label>
+                <input type="text" class="form-control" id="m-remarks" placeholder="Optional">
+              </div>
+            </div>
+            <button class="btn btn-primary" onclick="enterMarks()">💾 Save Marks</button>
+          </div>
+        </div>
+
+        <!-- View marks for a course -->
+        <div class="card">
+          <div class="card-header">
+            <h3>Marks by Student</h3>
+            <div style="display:flex;gap:.75rem;align-items:center">
+              <select class="form-control form-select" id="view-student-marks" style="width:auto">
+                <option value="">— Select Student —</option>
+              </select>
+              <button class="btn btn-outline btn-sm" onclick="loadStudentMarks()">View</button>
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead><tr><th>Course</th><th>Exam Type</th><th>Max</th><th>Obtained</th><th>%</th><th>Grade</th></tr></thead>
+              <tbody id="marks-tbody"><tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📝</div><h3>Select a student</h3></div></td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Report Card -->
+      <div class="tab-pane" id="tab-report">
+        <div class="filter-bar">
+          <select class="form-control form-select" id="report-student"><option value="">— Select Student —</option></select>
+          <button class="btn btn-primary" onclick="loadReport()">Generate Report Card</button>
+          <button class="btn btn-outline" onclick="window.print()">🖨️ Print</button>
+        </div>
+        <div id="report-card-container">
+          <div class="empty-state"><div class="empty-icon">📄</div><h3>Select a student and click Generate</h3></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="../js/api.js"></script>
+<script>
+  if (!Auth.isLoggedIn()) window.location.href='../index.html';
+  fetch('_sidebar.html').then(r=>r.text()).then(h=>{ document.getElementById('sidebar-container').innerHTML=h; initSidebar(); });
+
+  // Hide Enter Marks for STUDENTS
+  if (Auth.getRole() === 'STUDENT') {
+    document.getElementById('tab-btn-enter').style.display = 'none';
+    document.getElementById('tab-enter').classList.remove('active');
+    
+    document.getElementById('tab-btn-report').classList.add('active');
+    document.getElementById('tab-report').classList.add('active');
+  }
+
+  initTabs();
+
+  async function loadSelects() {
+    try {
+      const [students, courses] = await Promise.all([API.students.getAll(), API.courses.getAll()]);
+      ['m-student','view-student-marks','report-student'].forEach(id => {
+        const sel = document.getElementById(id);
+        students.forEach(s=>{ const o=document.createElement('option'); o.value=s.id; o.textContent=`${s.studentId} — ${s.firstName} ${s.lastName}`; sel.appendChild(o); });
+      });
+      const csel = document.getElementById('m-course');
+      courses.forEach(c=>{ const o=document.createElement('option'); o.value=c.id; o.textContent=`${c.courseCode} — ${c.courseName}`; csel.appendChild(o); });
+    } catch(e) { toast(e.message,'error'); }
+  }
+
+  async function enterMarks() {
+    const payload = {
+      studentId: parseInt(document.getElementById('m-student').value),
+      courseId:  parseInt(document.getElementById('m-course').value),
+      examType:  document.getElementById('m-type').value,
+      maxMarks:  parseFloat(document.getElementById('m-max').value),
+      obtained:  parseFloat(document.getElementById('m-obtained').value),
+      remarks:   document.getElementById('m-remarks').value,
+    };
+    if (!payload.studentId || !payload.courseId) { toast('Select student and course','warning'); return; }
+    if (isNaN(payload.obtained) || payload.obtained < 0) { toast('Enter valid marks','warning'); return; }
+    try {
+      await API.marks.enter(payload);
+      toast('Marks saved successfully','success');
+      document.getElementById('m-obtained').value='';
+      document.getElementById('m-remarks').value='';
+    } catch(e) { toast(e.message,'error'); }
+  }
+
+  async function loadStudentMarks() {
+    const sid = document.getElementById('view-student-marks').value;
+    if (!sid) { toast('Select a student','warning'); return; }
+    try {
+      const marks = await API.marks.byStudent(sid);
+      const tbody = document.getElementById('marks-tbody');
+      if (!marks.length) { tbody.innerHTML='<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📝</div><h3>No marks entered yet</h3></div></td></tr>'; return; }
+      tbody.innerHTML = marks.map(m=>{
+        const pct = ((m.obtained/m.maxMarks)*100).toFixed(1);
+        return `<tr>
+          <td>${m.course.courseName}</td>
+          <td>${m.examType.replace('_',' ')}</td>
+          <td>${m.maxMarks}</td>
+          <td><strong>${m.obtained}</strong></td>
+          <td>${pct}%</td>
+          <td>${statusBadge(m.grade)}</td>
+        </tr>`;
+      }).join('');
+    } catch(e) { toast(e.message,'error'); }
+  }
+
+  async function loadReport() {
+    const sid = document.getElementById('report-student').value;
+    if (!sid) { toast('Select a student','warning'); return; }
+    const container = document.getElementById('report-card-container');
+    container.innerHTML = '<div class="loading-overlay"><div class="spinner"></div></div>';
+    try {
+      const r = await API.marks.reportCard(sid);
+      if (!r.subjects?.length) {
+        container.innerHTML='<div class="empty-state"><div class="empty-icon">📝</div><h3>No marks available for this student</h3></div>';
+        return;
+      }
+      const gradeColor = r.cgpa>=8?'var(--success)':r.cgpa>=6?'var(--info)':r.cgpa>=5?'var(--warning)':'var(--danger)';
+      container.innerHTML = `
+        <div class="card">
+          <div class="report-card-header">
+            <div class="report-avatar">${initials(r.studentName)}</div>
+            <div class="report-info">
+              <h2>${r.studentName}</h2>
+              <p>${r.studentId} · ${r.department}</p>
+              <p style="margin-top:.4rem;font-size:.82rem;opacity:.65">Total Credits Completed: ${r.totalCredits}</p>
+            </div>
+            <div class="cgpa-badge">
+              <div class="cgpa-value" style="color:${gradeColor}">${r.cgpa}</div>
+              <div class="cgpa-label">CGPA / 10</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <table style="width:100%">
+              <thead style="background:var(--ivory-dark)">
+                <tr>
+                  <th style="padding:.75rem 1rem;text-align:left;color:var(--navy);font-size:.82rem;text-transform:uppercase;letter-spacing:.05em">Course</th>
+                  <th style="padding:.75rem 1rem;text-align:center;color:var(--navy);font-size:.82rem;text-transform:uppercase;letter-spacing:.05em">Credits</th>
+                  <th style="padding:.75rem 1rem;text-align:center;color:var(--navy);font-size:.82rem;text-transform:uppercase;letter-spacing:.05em">Percentage</th>
+                  <th style="padding:.75rem 1rem;text-align:center;color:var(--navy);font-size:.82rem;text-transform:uppercase;letter-spacing:.05em">Grade</th>
+                  <th style="padding:.75rem 1rem;text-align:center;color:var(--navy);font-size:.82rem;text-transform:uppercase;letter-spacing:.05em">Grade Point</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${r.subjects.map(s=>`
+                  <tr style="border-bottom:1px solid var(--border)">
+                    <td style="padding:.85rem 1rem">${s.course}</td>
+                    <td style="padding:.85rem 1rem;text-align:center">${s.credits}</td>
+                    <td style="padding:.85rem 1rem;text-align:center">
+                      <div style="display:flex;align-items:center;gap:.5rem;justify-content:center">
+                        <div class="progress" style="width:60px;flex-shrink:0"><div class="progress-bar ${s.percentage>=75?'success':s.percentage>=50?'':'danger'}" style="width:${s.percentage}%"></div></div>
+                        ${s.percentage}%
+                      </div>
+                    </td>
+                    <td style="padding:.85rem 1rem;text-align:center">${statusBadge(s.grade)}</td>
+                    <td style="padding:.85rem 1rem;text-align:center;font-weight:700">${s.gradePoint}</td>
+                  </tr>`).join('')}
+              </tbody>
+              <tfoot>
+                <tr style="background:var(--navy);color:var(--white)">
+                  <td style="padding:.85rem 1rem;font-weight:700">Overall CGPA</td>
+                  <td style="padding:.85rem 1rem;text-align:center">${r.totalCredits}</td>
+                  <td colspan="2"></td>
+                  <td style="padding:.85rem 1rem;text-align:center;font-size:1.2rem;font-weight:700;color:var(--amber)">${r.cgpa}</td>
+                </tr>
+              </tfoot>
+            </table>
+            <div style="margin-top:1.5rem;padding:1rem;background:var(--ivory);border-radius:var(--radius);font-size:.82rem;color:var(--text-muted)">
+              <strong>Grade Scale:</strong> O (≥90) · A+ (85-89) · A (75-84) · B+ (65-74) · B (55-64) · C (50-54) · F (&lt;50)
+            </div>
+          </div>
+        </div>`;
+    } catch(e) { toast(e.message,'error'); }
+  }
+
+  loadSelects();
+</script>
+</body>
+</html>

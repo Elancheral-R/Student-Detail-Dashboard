@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Attendance — SIS</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<div class="app-shell">
+  <div id="sidebar-container"></div>
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="hamburger" id="hamburger"><span></span><span></span><span></span></button>
+        <div><div class="topbar-title">Attendance</div><div class="topbar-breadcrumb">Home › Attendance Management</div></div>
+      </div>
+    </header>
+    <main class="page-content">
+      <div class="page-header">
+        <div class="page-header-left"><h2>Attendance Management</h2><p>Mark and view student attendance records</p></div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab-btn active" id="tab-btn-mark" data-tab="tab-mark">📋 Mark Attendance</button>
+        <button class="tab-btn" id="tab-btn-view" data-tab="tab-view">📊 View by Student</button>
+      </div>
+
+      <!-- Mark Attendance Tab -->
+      <div class="tab-pane active" id="tab-mark">
+        <div class="card" style="margin-bottom:1.5rem">
+          <div class="card-header"><h3>Select Course &amp; Date</h3></div>
+          <div class="card-body" style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end">
+            <div class="form-group" style="flex:1;min-width:200px;margin:0">
+              <label>Course</label>
+              <select class="form-control form-select" id="att-course-select"><option value="">— Select Course —</option></select>
+            </div>
+            <div class="form-group" style="margin:0">
+              <label>Date</label>
+              <input type="date" class="form-control" id="att-date">
+            </div>
+            <button class="btn btn-primary" onclick="loadAttendanceSheet()">Load Students</button>
+          </div>
+        </div>
+
+        <div id="attendance-sheet"></div>
+      </div>
+
+      <!-- View by Student Tab -->
+      <div class="tab-pane" id="tab-view">
+        <div class="card" style="margin-bottom:1.5rem">
+          <div class="card-body" style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end">
+            <div class="form-group" style="flex:1;min-width:200px;margin:0">
+              <label>Student</label>
+              <select class="form-control form-select" id="view-student-select"><option value="">— Select Student —</option></select>
+            </div>
+            <div class="form-group" style="flex:1;min-width:200px;margin:0">
+              <label>Course</label>
+              <select class="form-control form-select" id="view-course-select"><option value="">— Select Course —</option></select>
+            </div>
+            <button class="btn btn-primary" onclick="loadStudentAttendance()">View</button>
+          </div>
+        </div>
+        <div id="student-attendance-view"></div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="../js/api.js"></script>
+<script>
+  if (!Auth.isLoggedIn()) window.location.href='../index.html';
+  fetch('_sidebar.html').then(r=>r.text()).then(h=>{ document.getElementById('sidebar-container').innerHTML=h; initSidebar(); });
+
+  // Hide Mark Attendance tab for STUDENTS
+  if (Auth.getRole() === 'STUDENT') {
+    document.getElementById('tab-btn-mark').style.display = 'none';
+    document.getElementById('tab-mark').classList.remove('active');
+    
+    document.getElementById('tab-btn-view').classList.add('active');
+    document.getElementById('tab-view').classList.add('active');
+  }
+
+  initTabs();
+
+  // Set today's date
+  document.getElementById('att-date').value = new Date().toISOString().split('T')[0];
+
+  async function loadSelects() {
+    try {
+      const [courses, students] = await Promise.all([API.courses.getAll(), API.students.getAll()]);
+      ['att-course-select','view-course-select'].forEach(id => {
+        const sel = document.getElementById(id);
+        courses.forEach(c => { const o=document.createElement('option'); o.value=c.id; o.textContent=`${c.courseCode} — ${c.courseName}`; sel.appendChild(o); });
+      });
+      const ssel = document.getElementById('view-student-select');
+      students.forEach(s => { const o=document.createElement('option'); o.value=s.id; o.textContent=`${s.studentId} — ${s.firstName} ${s.lastName}`; ssel.appendChild(o); });
+    } catch(e) { toast(e.message,'error'); }
+  }
+
+  async function loadAttendanceSheet() {
+    const courseId = document.getElementById('att-course-select').value;
+    const date     = document.getElementById('att-date').value;
+    if (!courseId) { toast('Select a course','warning'); return; }
+    if (!date)     { toast('Select a date','warning'); return; }
+
+    const sheet = document.getElementById('attendance-sheet');
+    sheet.innerHTML = '<div class="loading-overlay"><div class="spinner"></div></div>';
+
+    try {
+      // Load enrolled students + existing attendance for that date
+      const [enrollments, existing] = await Promise.all([
+        API.courses.enrollments(courseId),
+        API.attendance.byDate(courseId, date).catch(()=>[]),
+      ]);
+
+      if (!enrollments.length) { sheet.innerHTML='<div class="empty-state"><div class="empty-icon">👥</div><h3>No students enrolled in this course</h3></div>'; return; }
+
+      // Map existing attendance by studentId
+      const existingMap = {};
+      existing.forEach(a => existingMap[a.student.id] = a.status);
+
+      sheet.innerHTML = `
+        <div class="card">
+          <div class="card-header">
+            <h3>Attendance Sheet — ${date}</h3>
+            <div style="display:flex;gap:.5rem">
+              <button class="btn btn-outline btn-sm" onclick="markAll('PRESENT')">✅ All Present</button>
+              <button class="btn btn-outline btn-sm" onclick="markAll('ABSENT')">❌ All Absent</button>
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead><tr><th>Student</th><th>ID</th><th style="text-align:center">Present</th><th style="text-align:center">Absent</th><th style="text-align:center">Late</th></tr></thead>
+              <tbody>
+                ${enrollments.map(e => {
+                  const sid   = e.student.id;
+                  const status = existingMap[sid] || 'PRESENT';
+                  return `<tr>
+                    <td><div class="avatar-cell"><div class="table-avatar">${initials(e.student.firstName+' '+e.student.lastName)}</div><span>${e.student.firstName} ${e.student.lastName}</span></div></td>
+                    <td>${e.student.studentId}</td>
+                    ${['PRESENT','ABSENT','LATE'].map(s=>`
+                      <td style="text-align:center">
+                        <input type="radio" name="att_${sid}" value="${s}" data-student="${sid}" ${status===s?'checked':''}
+                          style="width:18px;height:18px;cursor:pointer;accent-color:var(--navy)">
+                      </td>`).join('')}
+                  </tr>`;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+          <div style="padding:1.25rem;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:.75rem">
+            <button class="btn btn-primary btn-lg" onclick="submitAttendance(${courseId}, '${date}')">💾 Save Attendance</button>
+          </div>
+        </div>`;
+    } catch(e) { toast(e.message,'error'); }
+  }
+
+  function markAll(status) {
+    document.querySelectorAll(`input[type=radio][value=${status}]`).forEach(r => r.checked=true);
+  }
+
+  async function submitAttendance(courseId, date) {
+    const radios = document.querySelectorAll('input[type=radio]:checked');
+    if (!radios.length) { toast('No students to mark','warning'); return; }
+
+    const promises = [...radios].map(r =>
+      API.attendance.mark({ studentId: parseInt(r.dataset.student), courseId: parseInt(courseId), classDate: date, status: r.value, remarks: '' })
+    );
+    try {
+      await Promise.all(promises);
+      toast(`Attendance saved for ${promises.length} students`, 'success');
+    } catch(e) { toast(e.message,'error'); }
+  }
+
+  async function loadStudentAttendance() {
+    const studentId = document.getElementById('view-student-select').value;
+    const courseId  = document.getElementById('view-course-select').value;
+    if (!studentId || !courseId) { toast('Select student and course','warning'); return; }
+
+    const view = document.getElementById('student-attendance-view');
+    view.innerHTML = '<div class="loading-overlay"><div class="spinner"></div></div>';
+
+    try {
+      const [records, pct] = await Promise.all([
+        API.attendance.byCourse(studentId, courseId),
+        API.attendance.percentage(studentId, courseId),
+      ]);
+
+      const pctVal = pct.percentage || 0;
+      const barClass = pctVal >= 75 ? 'success' : pctVal >= 50 ? '' : 'danger';
+
+      view.innerHTML = `
+        <div class="card" style="margin-bottom:1rem">
+          <div class="card-body">
+            <div style="display:flex;justify-content:space-between;margin-bottom:.5rem">
+              <strong>Attendance Percentage</strong>
+              <span style="font-weight:700;color:${pctVal>=75?'var(--success)':'var(--danger)'}">${pctVal}%</span>
+            </div>
+            <div class="progress"><div class="progress-bar ${barClass}" style="width:${pctVal}%"></div></div>
+            <div style="display:flex;gap:2rem;margin-top:.75rem;font-size:.85rem;color:var(--text-muted)">
+              <span>✅ Present: <strong>${pct.present}</strong></span>
+              <span>❌ Absent: <strong>${pct.total - pct.present}</strong></span>
+              <span>📅 Total: <strong>${pct.total}</strong></span>
+            </div>
+            ${pctVal < 75 ? '<div style="margin-top:.75rem;padding:.6rem 1rem;background:var(--danger-bg);border-radius:8px;color:var(--danger);font-size:.85rem">⚠️ Attendance below 75% — student may be detained</div>' : ''}
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>Attendance Records</h3></div>
+          <div class="attendance-grid" style="padding:1rem">
+            ${records.length ? records.sort((a,b)=>a.classDate<b.classDate?1:-1).map(a=>`
+              <div class="att-cell ${a.status.toLowerCase()}">
+                <span class="att-date">${new Date(a.classDate).toLocaleDateString('en-IN',{day:'2-digit',month:'short'})}</span>
+                ${a.status}
+              </div>`).join('') : '<p style="color:var(--text-muted);padding:1rem">No attendance records found.</p>'}
+          </div>
+        </div>`;
+    } catch(e) { toast(e.message,'error'); }
+  }
+
+  loadSelects();
+</script>
+</body>
+</html>

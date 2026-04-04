@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SIS — Login</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .alert { padding:.75rem 1rem; border-radius:var(--radius); margin-bottom:1rem; font-size:.88rem; display:none; }
+    .alert.error { background:var(--danger-bg); color:#b91c1c; border:1px solid #fca5a5; display:block; }
+    .login-divider { text-align:center; color:var(--text-light); font-size:.82rem; margin: 1rem 0; position:relative; }
+    .login-divider::before,.login-divider::after { content:''; position:absolute; top:50%; width:42%; height:1px; background:var(--border); }
+    .login-divider::before { left:0; } .login-divider::after { right:0; }
+  </style>
+</head>
+<body>
+<div class="login-page">
+
+  <!-- Brand Panel -->
+  <div class="login-brand">
+    <div class="login-brand-inner">
+      <div class="login-brand-logo">🎓</div>
+      <h1>EduTrack SIS</h1>
+      <p>Student Information System<br>Powered by Spring Boot &amp; PostgreSQL</p>
+    </div>
+  </div>
+
+  <!-- Login Form Panel -->
+  <div class="login-form-side">
+    <div class="login-card">
+      <h2>Welcome back</h2>
+      <p class="subtitle">Sign in to access your dashboard</p>
+
+
+
+      <div id="error-msg" class="alert" style="display:none"></div>
+
+      <form id="login-form" autocomplete="off">
+        <div class="form-group">
+          <label for="username">Username</label>
+          <div class="input-with-icon">
+            <span class="icon">👤</span>
+            <input type="text" id="username" class="form-control" placeholder="Enter username" required autocomplete="username">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <div class="input-with-icon">
+            <span class="icon">🔒</span>
+            <input type="password" id="password" class="form-control" placeholder="Enter password" required autocomplete="current-password">
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-lg btn-block" id="login-btn">
+          Sign In
+        </button>
+      </form>
+
+      <p style="text-align:center;margin-top:1.5rem;font-size:.8rem;color:var(--text-light);">
+        OOSE Academic Project · Spring Boot + PostgreSQL + Vanilla JS
+      </p>
+    </div>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+  // Redirect if already logged in
+  if (Auth.isLoggedIn()) window.location.href = 'pages/dashboard.html';
+
+
+
+  document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('login-btn');
+    const errEl = document.getElementById('error-msg');
+    errEl.style.display = 'none';
+    btn.disabled = true;
+    btn.textContent = 'Signing in…';
+
+    try {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const res = await API.auth.login(username, password);
+      Auth.save(res.token, res.role, res.fullName, res.userId);
+      window.location.href = 'pages/dashboard.html';
+    } catch (err) {
+      errEl.textContent = err.message || 'Invalid credentials. Please try again.';
+      errEl.style.display = 'block';
+      errEl.className = 'alert error';
+      btn.disabled = false;
+      btn.textContent = 'Sign In';
+    }
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+# Java/Maven Build artifacts
+**/target/
+*.jar
+*.war
+*.ear
+*.class
+
+# IDE specific files
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.settings/
+.project
+.classpath
+.factorypath
+bin/
+.recommenders/
+
+# OS Specific
+.DS_Store
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# Logs
+*.log
+logs/
+
+# Sensitive files (placeholder)
+.env
+*.pub
+*.key
+credentials.json
+secrets.properties
+
+# Local/User specific
+atlassian-ide-plugin.xml
+com_apple_backup_excludeItem
+
+# Frontend dependencies (if any)
+node_modules/
+dist/
+.npm/
+
+# Temp files
+*.tmp
+*.temp
+*.bak
+*.swp
+~*

@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Courses — SIS</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<div class="app-shell">
+  <div id="sidebar-container"></div>
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="hamburger" id="hamburger"><span></span><span></span><span></span></button>
+        <div><div class="topbar-title">Courses</div><div class="topbar-breadcrumb">Home › Course Management</div></div>
+      </div>
+    </header>
+    <main class="page-content">
+      <div class="page-header">
+        <div class="page-header-left"><h2>Course Management</h2><p>Create and manage academic courses</p></div>
+        <button class="btn btn-primary" id="add-course-btn" onclick="openModal('course-modal')">➕ Add Course</button>
+      </div>
+
+      <!-- Tabs: Courses | Enrollments -->
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="tab-courses">📚 Courses</button>
+        <button class="tab-btn" data-tab="tab-enrollments">👥 Enrollments</button>
+      </div>
+
+      <div class="tab-pane active" id="tab-courses">
+        <div class="filter-bar">
+          <input type="text" class="form-control" id="course-search" placeholder="🔍 Search courses…">
+        </div>
+        <div class="card">
+          <div class="table-wrapper">
+            <table>
+              <thead><tr><th>Course</th><th>Code</th><th>Credits</th><th>Semester</th><th>Faculty</th><th>Department</th><th>Actions</th></tr></thead>
+              <tbody id="course-tbody"><tr><td colspan="7"><div class="loading-overlay"><div class="spinner"></div></div></td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-pane" id="tab-enrollments">
+        <div class="filter-bar">
+          <select class="form-control form-select" id="enroll-course-select"><option value="">Select a Course</option></select>
+          <button class="btn btn-outline btn-sm" onclick="loadEnrollments()">Load</button>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>Enrolled Students</h3></div>
+          <div class="table-wrapper">
+            <table>
+              <thead><tr><th>Student</th><th>Student ID</th><th>Enrolled On</th><th>Status</th></tr></thead>
+              <tbody id="enrollment-tbody"><tr><td colspan="4"><div class="empty-state"><div class="empty-icon">👥</div><h3>Select a course above</h3></div></td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <!-- Enroll student -->
+        <div class="card" id="enroll-student-card" style="margin-top:1rem">
+          <div class="card-header"><h3>➕ Enroll a Student</h3></div>
+          <div class="card-body" style="display:flex;gap:1rem;align-items:flex-end;flex-wrap:wrap">
+            <div class="form-group" style="flex:1;min-width:200px;margin:0">
+              <label>Student</label>
+              <select class="form-control form-select" id="enroll-student-select"><option value="">— Select Student —</option></select>
+            </div>
+            <button class="btn btn-amber" onclick="enrollStudent()">Enroll</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Course Modal -->
+<div class="modal-overlay" id="course-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="course-modal-title">Add New Course</h3>
+      <button class="modal-close" onclick="closeModal('course-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid-2">
+        <input type="hidden" id="course-id">
+        <div class="form-group span-2"><label>Course Name *</label><input type="text" class="form-control" id="c-name" required placeholder="Data Structures & Algorithms"></div>
+        <div class="form-group"><label>Course Code *</label><input type="text" class="form-control" id="c-code" required placeholder="CS201"></div>
+        <div class="form-group"><label>Credits *</label><input type="number" class="form-control" id="c-credits" min="1" max="6" value="3" required></div>
+        <div class="form-group"><label>Semester *</label><input type="number" class="form-control" id="c-semester" min="1" max="8" value="1" required></div>
+        <div class="form-group"><label>Max Students</label><input type="number" class="form-control" id="c-max" value="60"></div>
+        <div class="form-group span-2">
+          <label>Assign Faculty</label>
+          <select class="form-control form-select" id="c-faculty">
+            <option value="">— Select Faculty —</option>
+          </select>
+        </div>
+        <div class="form-group span-2"><label>Description</label><textarea class="form-control" id="c-desc" rows="2"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('course-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveCourse()">Save Course</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="../js/api.js"></script>
+<script>
+  if (!Auth.isLoggedIn()) window.location.href = '../index.html';
+  fetch('_sidebar.html').then(r=>r.text()).then(h=>{ document.getElementById('sidebar-container').innerHTML=h; initSidebar(); });
+  initTabs();
+
+  // Hide write elements for STUDENTS
+  if (Auth.getRole() === 'STUDENT') {
+    document.getElementById('add-course-btn').style.display = 'none';
+    document.getElementById('enroll-student-card').style.display = 'none';
+  }
+
+  let allCourses = [], allStudents = [], allFaculty = [];
+
+  async function loadCourses() {
+    try {
+      allCourses = await API.courses.getAll();
+      renderCourses(allCourses);
+      // Populate course select for enrollments
+      const sel = document.getElementById('enroll-course-select');
+      sel.innerHTML = '<option value="">— Select Course —</option>';
+      allCourses.forEach(c => { const o=document.createElement('option'); o.value=c.id; o.textContent=`${c.courseCode} — ${c.courseName}`; sel.appendChild(o); });
+    } catch(e) { toast(e.message,'error'); }
+  }
+
+  async function loadStudentsList() {
+    try {
+      allStudents = await API.students.getAll();
+      const sel = document.getElementById('enroll-student-select');
+      sel.innerHTML = '<option value="">— Select Student —</option>';
+      allStudents.forEach(s => { const o=document.createElement('option'); o.value=s.id; o.textContent=`${s.studentId} — ${s.firstName} ${s.lastName}`; sel.appendChild(o); });
+    } catch(e) {}
+  }
+
+  async function loadFacultyList() {
+    try {
+      allFaculty = await API.faculty.getAll();
+      const sel = document.getElementById('c-faculty');
+      sel.innerHTML = '<option value="">— Select Faculty —</option>';
+      allFaculty.forEach(f => {
+        const o = document.createElement('option');
+        o.value = f.id;
+        o.textContent = `${f.firstName} ${f.lastName} (${f.designation || 'Faculty'})`;
+        sel.appendChild(o);
+      });
+    } catch(e) { console.error('Error loading faculty:', e); }
+  }
+
+  function renderCourses(courses) {
+    const tbody = document.getElementById('course-tbody');
+    if (!courses.length) { tbody.innerHTML='<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">📚</div><h3>No courses found</h3></div></td></tr>'; return; }
+    tbody.innerHTML = courses.map(c=>`
+      <tr>
+        <td><strong>${c.courseName}</strong></td>
+        <td><code style="background:var(--ivory);padding:.15rem .4rem;border-radius:4px;font-size:.82rem">${c.courseCode}</code></td>
+        <td>${c.credits}</td>
+        <td>Sem ${c.semester}</td>
+        <td>${c.faculty ? c.faculty.firstName+' '+c.faculty.lastName : '—'}</td>
+        <td>${c.department?.code||'—'}</td>
+        <td>
+          <div class="table-actions">
+            ${Auth.getRole() !== 'STUDENT' ? `<button class="btn btn-outline btn-sm" onclick="editCourse(${c.id})">✏️</button>` : ''}
+            ${Auth.getRole()==='ADMIN'?`<button class="btn btn-sm" style="background:var(--danger-bg);color:var(--danger)" onclick="deleteCourse(${c.id})">🗑</button>`:''}
+          </div>
+        </td>
+      </tr>`).join('');
+  }
+
+  document.getElementById('course-search').addEventListener('input', debounce(e => {
+    const q = e.target.value.toLowerCase();
+    renderCourses(allCourses.filter(c => `${c.courseName} ${c.courseCode}`.toLowerCase().includes(q)));
+  }));
+
+  async function loadEnrollments() {
+    const courseId = document.getElementById('enroll-course-select').value;
+    if (!courseId) { toast('Select a course first','warning'); return; }
+    try {
+      const enrollments = await API.courses.enrollments(courseId);
+      const tbody = document.getElementById('enrollment-tbody');
+      if (!enrollments.length) { tbody.innerHTML='<tr><td colspan="4"><div class="empty-state"><div class="empty-icon">👥</div><h3>No students enrolled</h3></div></td></tr>'; return; }
+      tbody.innerHTML = enrollments.map(e=>`
+        <tr>
+          <td><div class="avatar-cell"><div class="table-avatar">${initials(e.student.firstName+' '+e.student.lastName)}</div><span>${e.student.firstName} ${e.student.lastName}</span></div></td>
+          <td>${e.student.studentId}</td>
+          <td>${fmtDate(e.enrolledAt)}</td>
+          <td>${statusBadge(e.status)}</td>
+        </tr>`).join('');
+    } catch(err) { toast(err.message,'error'); }
+  }
+
+  async function enrollStudent() {
+    const courseId = document.getElementById('enroll-course-select').value;
+    const studentId = document.getElementById('enroll-student-select').value;
+    if (!courseId || !studentId) { toast('Select both course and student','warning'); return; }
+    try {
+      await API.courses.enroll(courseId, studentId);
+      toast('Student enrolled successfully','success');
+      loadEnrollments();
+    } catch(e) { toast(e.message,'error'); }
+  }
+
+  function editCourse(id) {
+    const c = allCourses.find(x=>x.id===id);
+    if (!c) return;
+    document.getElementById('course-modal-title').textContent = 'Edit Course';
+    document.getElementById('course-id').value = c.id;
+    document.getElementById('c-name').value    = c.courseName;
+    document.getElementById('c-code').value    = c.courseCode;
+    document.getElementById('c-credits').value = c.credits;
+    document.getElementById('c-semester').value= c.semester;
+    document.getElementById('c-max').value     = c.maxStudents;
+    document.getElementById('c-desc').value    = c.description||'';
+    document.getElementById('c-faculty').value  = c.faculty ? c.faculty.id : '';
+    document.getElementById('c-code').disabled = true;
+    openModal('course-modal');
+  }
+
+  async function saveCourse() {
+    const id = document.getElementById('course-id').value;
+    const payload = {
+      courseName: document.getElementById('c-name').value.trim(),
+      courseCode: document.getElementById('c-code').value.trim(),
+      credits:    parseInt(document.getElementById('c-credits').value),
+      semester:   parseInt(document.getElementById('c-semester').value),
+      maxStudents:parseInt(document.getElementById('c-max').value),
+      description:document.getElementById('c-desc').value.trim(),
+      faculty: { id: document.getElementById('c-faculty').value || null }
+    };
+    if (!payload.faculty.id) delete payload.faculty;
+    try {
+      if (id) { await API.courses.update(id, payload); toast('Course updated','success'); }
+      else    { await API.courses.create(payload);     toast('Course created','success'); }
+      closeModal('course-modal');
+      document.getElementById('course-id').value='';
+      document.getElementById('c-code').disabled=false;
+      document.getElementById('course-modal-title').textContent='Add New Course';
+      loadCourses();
+    } catch(e) { toast(e.message,'error'); }
+  }
+
+  async function deleteCourse(id) {
+    if (!confirm('Delete this course?')) return;
+    try { await API.courses.delete(id); toast('Course removed','warning'); loadCourses(); }
+    catch(e) { toast(e.message,'error'); }
+  }
+
+  loadCourses();
+  loadStudentsList();
+  loadFacultyList();
+</script>
+</body>
+</html>

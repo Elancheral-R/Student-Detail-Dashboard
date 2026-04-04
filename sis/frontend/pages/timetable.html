@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Timetable — SIS</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<div class="app-shell">
+  <div id="sidebar-container"></div>
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="hamburger" id="hamburger"><span></span><span></span><span></span></button>
+        <div><div class="topbar-title">Timetable</div><div class="topbar-breadcrumb">Home › Class Schedule</div></div>
+      </div>
+    </header>
+    <main class="page-content">
+      <div class="page-header">
+        <div class="page-header-left"><h2>Class Timetable</h2><p>Weekly schedule with conflict detection</p></div>
+        <button class="btn btn-primary" id="add-timetable-btn" onclick="openModal('tt-modal')">➕ Add Schedule</button>
+      </div>
+
+      <!-- Weekly Grid View -->
+      <div class="card">
+        <div class="card-header">
+          <h3>Weekly Schedule</h3>
+          <div style="display:flex;gap:.5rem;align-items:center">
+            <select class="form-control form-select" id="tt-semester" style="width:auto">
+              <option value="1">Semester 1</option><option value="2">Semester 2</option>
+              <option value="3">Semester 3</option><option value="4">Semester 4</option>
+              <option value="5">Semester 5</option><option value="6">Semester 6</option>
+            </select>
+            <button class="btn btn-outline btn-sm" onclick="loadTimetable()">Load</button>
+          </div>
+        </div>
+        <div class="card-body" style="overflow-x:auto">
+          <div id="timetable-grid">
+            <div class="loading-overlay"><div class="spinner"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- List view -->
+      <div class="card" style="margin-top:1.5rem">
+        <div class="card-header"><h3>All Schedule Entries</h3></div>
+        <div class="table-wrapper">
+          <table>
+            <thead><tr><th>Course</th><th>Day</th><th>Time</th><th>Room</th><th>Semester</th></tr></thead>
+            <tbody id="tt-list"><tr><td colspan="5"><div class="loading-overlay"><div class="spinner"></div></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Add Timetable Modal -->
+<div class="modal-overlay" id="tt-modal">
+  <div class="modal">
+    <div class="modal-header"><h3>Add Schedule Entry</h3><button class="modal-close" onclick="closeModal('tt-modal')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-grid-2">
+        <div class="form-group span-2"><label>Course *</label><select class="form-control form-select" id="tt-course"><option value="">— Select Course —</option></select></div>
+        <div class="form-group"><label>Day *</label>
+          <select class="form-control form-select" id="tt-day">
+            <option value="MON">Monday</option><option value="TUE">Tuesday</option>
+            <option value="WED">Wednesday</option><option value="THU">Thursday</option>
+            <option value="FRI">Friday</option><option value="SAT">Saturday</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Room No.</label><input type="text" class="form-control" id="tt-room" placeholder="LH-101"></div>
+        <div class="form-group"><label>Start Time *</label><input type="time" class="form-control" id="tt-start"></div>
+        <div class="form-group"><label>End Time *</label><input type="time" class="form-control" id="tt-end"></div>
+        <div class="form-group"><label>Semester *</label><input type="number" class="form-control" id="tt-sem" min="1" max="8" value="1"></div>
+        <div class="form-group"><label>Academic Year</label><input type="text" class="form-control" id="tt-ay" value="2024-25"></div>
+      </div>
+      <div id="conflict-warn" style="display:none;margin-top:.75rem;padding:.75rem 1rem;background:var(--warning-bg);border-radius:8px;color:var(--warning);font-size:.88rem">
+        ⚠️ Potential time conflict detected — please verify before saving.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('tt-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveTimetable()">Save Entry</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="../js/api.js"></script>
+<script>
+  if (!Auth.isLoggedIn()) window.location.href='../index.html';
+  fetch('_sidebar.html').then(r=>r.text()).then(h=>{ document.getElementById('sidebar-container').innerHTML=h; initSidebar(); });
+
+  // Hide Add Schedule if not admin
+  if (Auth.getRole() !== 'ADMIN') {
+    document.getElementById('add-timetable-btn').style.display = 'none';
+  }
+
+  const DAYS = ['MON','TUE','WED','THU','FRI','SAT'];
+  const DAY_LABELS = { MON:'Mon', TUE:'Tue', WED:'Wed', THU:'Thu', FRI:'Fri', SAT:'Sat' };
+  const TIME_SLOTS = ['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00'];
+
+  let allEntries = [];
+
+  async function loadCourses() {
+    try {
+      const courses = await API.courses.getAll();
+      const sel = document.getElementById('tt-course');
+      courses.forEach(c=>{ const o=document.createElement('option'); o.value=c.id; o.textContent=`${c.courseCode} — ${c.courseName}`; sel.appendChild(o); });
+    } catch(e) {}
+  }
+
+  async function loadTimetable() {
+    const sem = document.getElementById('tt-semester').value;
+    const grid = document.getElementById('timetable-grid');
+    grid.innerHTML = '<div class="loading-overlay"><div class="spinner"></div></div>';
+
+    try {
+      // For demo: load all from backend (real impl would filter by semester)
+      const entries = await fetch(`http://localhost:8080/api/timetable?semester=${sem}&year=2024-25`, {
+        headers: { 'Authorization': `Bearer ${Auth.getToken()}` }
+      }).then(r => r.ok ? r.json() : []).catch(()=>[]);
+
+      allEntries = entries;
+      renderGrid(entries);
+      renderList(entries);
+    } catch(e) {
+      // Show demo grid if backend not available
+      renderGrid([]);
+      toast('Using demo layout — connect backend for live data', 'warning');
+    }
+  }
+
+  function renderGrid(entries) {
+    const grid = document.getElementById('timetable-grid');
+    // Build lookup: day → [entry, ...]
+    const byDay = {};
+    DAYS.forEach(d => byDay[d] = []);
+    entries.forEach(e => { if(byDay[e.dayOfWeek]) byDay[e.dayOfWeek].push(e); });
+
+    grid.innerHTML = `
+      <div style="display:grid;grid-template-columns:70px repeat(6,1fr);gap:2px;background:var(--border);border-radius:var(--radius);overflow:hidden;min-width:600px">
+        <div style="background:var(--navy);padding:.6rem .4rem;font-size:.72rem;color:rgba(255,255,255,.5)">Time</div>
+        ${DAYS.map(d=>`<div style="background:var(--navy);padding:.6rem;text-align:center;font-size:.78rem;font-weight:700;color:rgba(255,255,255,.8);text-transform:uppercase;letter-spacing:.06em">${DAY_LABELS[d]}</div>`).join('')}
+        ${TIME_SLOTS.map(t=>`
+          <div style="background:var(--ivory-dark);padding:.5rem .4rem;font-size:.7rem;color:var(--text-muted);text-align:right;display:flex;align-items:center;justify-content:flex-end">${t}</div>
+          ${DAYS.map(d=>{
+            const ev = byDay[d].filter(e => e.startTime <= t+':00' && e.endTime > t+':00');
+            return `<div style="background:var(--white);padding:.3rem;min-height:52px">
+              ${ev.map(e=>`
+                <div style="background:var(--navy);color:var(--white);border-radius:6px;padding:.3rem .4rem;font-size:.68rem;font-weight:600;border-left:3px solid var(--amber);margin-bottom:2px">
+                  ${e.course?.courseCode||'—'}
+                  <span style="display:block;font-weight:400;opacity:.7">${e.roomNo||''}</span>
+                </div>`).join('')}
+            </div>`;
+          }).join('')}
+        `).join('')}
+      </div>`;
+  }
+
+  function renderList(entries) {
+    const tbody = document.getElementById('tt-list');
+    if (!entries.length) {
+      tbody.innerHTML='<tr><td colspan="5"><div class="empty-state"><div class="empty-icon">🕐</div><h3>No schedule entries</h3></div></td></tr>';
+      return;
+    }
+    tbody.innerHTML = entries.map(e=>`
+      <tr>
+        <td><strong>${e.course?.courseName||'—'}</strong> <span style="font-size:.78rem;color:var(--text-muted)">(${e.course?.courseCode||''})</span></td>
+        <td>${DAY_LABELS[e.dayOfWeek]||e.dayOfWeek}</td>
+        <td>${e.startTime} – ${e.endTime}</td>
+        <td>${e.roomNo||'—'}</td>
+        <td>Sem ${e.semester}</td>
+      </tr>`).join('');
+  }
+
+  async function saveTimetable() {
+    const payload = {
+      course:       { id: parseInt(document.getElementById('tt-course').value) },
+      dayOfWeek:    document.getElementById('tt-day').value,
+      startTime:    document.getElementById('tt-start').value,
+      endTime:      document.getElementById('tt-end').value,
+      roomNo:       document.getElementById('tt-room').value,
+      semester:     parseInt(document.getElementById('tt-sem').value),
+      academicYear: document.getElementById('tt-ay').value,
+    };
+    if (!payload.course.id || !payload.startTime || !payload.endTime) {
+      toast('Fill all required fields','warning'); return;
+    }
+    if (payload.startTime >= payload.endTime) {
+      toast('End time must be after start time','warning'); return;
+    }
+    try {
+      await post('/timetable', payload);
+      toast('Schedule entry saved','success');
+      closeModal('tt-modal');
+      loadTimetable();
+    } catch(e) {
+      if (e.message.includes('conflict') || e.message.includes('Duplicate')) {
+        document.getElementById('conflict-warn').style.display='block';
+      }
+      toast(e.message,'error');
+    }
+  }
+
+  loadCourses();
+  loadTimetable();
+</script>
+</body>
+</html>
