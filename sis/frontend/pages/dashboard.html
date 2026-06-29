@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard — SIS</title>
+  <title>Dashboard — SIS EduTrack</title>
+  <meta name="description" content="EduTrack SIS role-specific dashboard for Students, Faculty, and Administrators.">
   <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
@@ -28,64 +29,232 @@
     </header>
 
     <main class="page-content">
-      <div class="page-header">
-        <div class="page-header-left">
-          <h2>Welcome back, <span id="welcome-name">—</span> 👋</h2>
-          <p>Here's what's happening in your institution today.</p>
-        </div>
-      </div>
 
-      <!-- Stat Cards -->
-      <div class="stats-grid" id="stats-grid">
-        <div class="stat-card">
-          <div class="stat-icon navy">🎓</div>
-          <div class="stat-value" id="stat-students">—</div>
-          <div class="stat-label">Total Students</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon amber">📚</div>
-          <div class="stat-value" id="stat-courses">—</div>
-          <div class="stat-label">Active Courses</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon green">✅</div>
-          <div class="stat-value" id="stat-enrollments">—</div>
-          <div class="stat-label">Enrollments</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon red">💰</div>
-          <div class="stat-value" id="stat-fees">—</div>
-          <div class="stat-label">Fee Pending (₹)</div>
-        </div>
-      </div>
-
-      <!-- Two-column lower section -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:.5rem;" id="lower-grid">
-
-        <!-- Year-wise distribution -->
-        <div class="card">
-          <div class="card-header"><h3>📊 Year-wise Students</h3></div>
-          <div class="card-body" id="year-chart">
-            <div class="loading-overlay"><div class="spinner"></div></div>
+      <!-- ═══════════════════════════════════════════════
+           STUDENT DASHBOARD
+      ═══════════════════════════════════════════════ -->
+      <div id="student-dashboard" style="display:none">
+        <div class="page-header">
+          <div class="page-header-left">
+            <h2>Welcome back, <span id="s-welcome-name">—</span> 👋
+              <span class="dashboard-role-badge student">Student</span>
+            </h2>
+            <p>Your academic snapshot at a glance.</p>
           </div>
+          <a href="marks.html" class="btn btn-primary">📄 Full Report Card</a>
         </div>
 
-        <!-- Quick Links -->
-        <div class="card">
-          <div class="card-header"><h3>⚡ Quick Actions</h3></div>
-          <div class="card-body">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
-              <a href="students.html" class="btn btn-outline" style="justify-content:center;">➕ Add Student</a>
-              <a href="courses.html" class="btn btn-outline" style="justify-content:center;">📚 Add Course</a>
-              <a href="attendance.html" class="btn btn-outline" style="justify-content:center;">📋 Mark Attendance</a>
-              <a href="marks.html" class="btn btn-outline" style="justify-content:center;">📝 Enter Marks</a>
-              <a href="fees.html" class="btn btn-outline" style="justify-content:center;">💰 Record Fee</a>
-              <a href="timetable.html" class="btn btn-outline" style="justify-content:center;">🕐 Timetable</a>
+        <!-- Top row: CGPA ring + Fee card -->
+        <div class="student-top-grid">
+
+          <!-- CGPA Ring Card -->
+          <div class="card cgpa-card">
+            <div class="card-header"><h3>🎯 CGPA Progress</h3></div>
+            <div class="card-body cgpa-body">
+              <div class="cgpa-ring-wrap">
+                <svg class="cgpa-ring" viewBox="0 0 120 120">
+                  <circle class="cgpa-ring-bg" cx="60" cy="60" r="50"/>
+                  <circle class="cgpa-ring-fill" id="cgpa-ring-fill" cx="60" cy="60" r="50"
+                    stroke-dasharray="314" stroke-dashoffset="314"/>
+                </svg>
+                <div class="cgpa-center">
+                  <div class="cgpa-value" id="s-cgpa">—</div>
+                  <div class="cgpa-label">CGPA</div>
+                </div>
+              </div>
+              <div class="cgpa-meta">
+                <div class="cgpa-meta-item">
+                  <span class="cgpa-meta-label">Total Credits</span>
+                  <span class="cgpa-meta-val" id="s-credits">—</span>
+                </div>
+                <div class="cgpa-meta-item">
+                  <span class="cgpa-meta-label">Courses</span>
+                  <span class="cgpa-meta-val" id="s-course-count">—</span>
+                </div>
+                <div class="cgpa-meta-item">
+                  <span class="cgpa-meta-label">Department</span>
+                  <span class="cgpa-meta-val" id="s-dept" style="font-size:.75rem">—</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fee Summary Card -->
+          <div class="card fee-summary-card">
+            <div class="card-header"><h3>💰 Fee Summary</h3></div>
+            <div class="card-body" id="s-fee-body">
+              <div class="loading-overlay"><div class="spinner"></div></div>
+            </div>
+          </div>
+
+          <!-- Quick Links -->
+          <div class="card">
+            <div class="card-header"><h3>⚡ Quick Links</h3></div>
+            <div class="card-body student-quick-links">
+              <a href="marks.html"      class="student-quick-btn">📝<span>My Marks</span></a>
+              <a href="attendance.html" class="student-quick-btn">📋<span>Attendance</span></a>
+              <a href="fees.html"       class="student-quick-btn">💰<span>Fee Details</span></a>
+              <a href="timetable.html"  class="student-quick-btn">🕐<span>Timetable</span></a>
             </div>
           </div>
         </div>
 
+        <!-- Attendance per course -->
+        <div class="card" style="margin-top:1.5rem">
+          <div class="card-header">
+            <h3>📋 Course Attendance</h3>
+            <span style="font-size:.82rem;color:var(--text-muted)">All enrolled courses</span>
+          </div>
+          <div class="card-body" id="s-attendance-grid">
+            <div class="loading-overlay"><div class="spinner"></div></div>
+          </div>
+        </div>
+
+        <!-- Subject-wise marks -->
+        <div class="card" style="margin-top:1.5rem">
+          <div class="card-header">
+            <h3>📊 Subject-wise Performance</h3>
+            <a href="marks.html" class="btn btn-outline btn-sm">View All</a>
+          </div>
+          <div class="table-wrapper" id="s-subjects-table">
+            <div class="loading-overlay"><div class="spinner"></div></div>
+          </div>
+        </div>
       </div>
+
+      <!-- ═══════════════════════════════════════════════
+           FACULTY DASHBOARD
+      ═══════════════════════════════════════════════ -->
+      <div id="faculty-dashboard" style="display:none">
+        <div class="page-header">
+          <div class="page-header-left">
+            <h2>Welcome back, <span id="f-welcome-name">—</span> 👋
+              <span class="dashboard-role-badge faculty">Faculty</span>
+            </h2>
+            <p>Your teaching overview and quick-entry portal.</p>
+          </div>
+        </div>
+
+        <!-- Faculty stat row -->
+        <div class="stats-grid" id="f-stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon amber">📚</div>
+            <div class="stat-value" id="f-stat-courses">—</div>
+            <div class="stat-label">Assigned Courses</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon navy">🎓</div>
+            <div class="stat-value" id="f-stat-students">—</div>
+            <div class="stat-label">Total Students</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon green">✅</div>
+            <div class="stat-value" id="f-stat-today">—</div>
+            <div class="stat-label">Today's Classes</div>
+          </div>
+        </div>
+
+        <!-- Assigned courses list -->
+        <div class="card" style="margin-top:1.5rem">
+          <div class="card-header">
+            <h3>📚 My Courses</h3>
+            <span style="font-size:.82rem;color:var(--text-muted)">Courses you are assigned to</span>
+          </div>
+          <div class="card-body" id="f-courses-grid">
+            <div class="loading-overlay"><div class="spinner"></div></div>
+          </div>
+        </div>
+
+        <!-- Quick actions -->
+        <div class="card" style="margin-top:1.5rem">
+          <div class="card-header"><h3>⚡ Quick Actions</h3></div>
+          <div class="card-body">
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:.75rem">
+              <a href="attendance.html" class="btn btn-primary" style="justify-content:center">📋 Mark Attendance</a>
+              <a href="marks.html"      class="btn btn-amber"   style="justify-content:center">📝 Enter Marks</a>
+              <a href="students.html"   class="btn btn-outline" style="justify-content:center">🎓 View Students</a>
+              <a href="timetable.html"  class="btn btn-outline" style="justify-content:center">🕐 Timetable</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════
+           ADMIN DASHBOARD
+      ═══════════════════════════════════════════════ -->
+      <div id="admin-dashboard" style="display:none">
+        <div class="page-header">
+          <div class="page-header-left">
+            <h2>Welcome back, <span id="a-welcome-name">—</span> 👋
+              <span class="dashboard-role-badge admin">Admin</span>
+            </h2>
+            <p>Institution-wide overview and management controls.</p>
+          </div>
+        </div>
+
+        <!-- Stat cards -->
+        <div class="stats-grid" id="a-stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon navy">🎓</div>
+            <div class="stat-value" id="a-stat-students">—</div>
+            <div class="stat-label">Total Students</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon amber">📚</div>
+            <div class="stat-value" id="a-stat-courses">—</div>
+            <div class="stat-label">Active Courses</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon green">✅</div>
+            <div class="stat-value" id="a-stat-enrollments">—</div>
+            <div class="stat-label">Enrollments</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon red">💰</div>
+            <div class="stat-value" id="a-stat-fees">—</div>
+            <div class="stat-label">Fee Pending (₹)</div>
+          </div>
+        </div>
+
+        <!-- Two-column lower section -->
+        <div class="admin-lower-grid" id="admin-lower-grid" style="margin-top:1.5rem">
+
+          <!-- Year-wise chart -->
+          <div class="card">
+            <div class="card-header"><h3>📊 Year-wise Students</h3></div>
+            <div class="card-body" id="a-year-chart">
+              <div class="loading-overlay"><div class="spinner"></div></div>
+            </div>
+          </div>
+
+          <!-- Quick Actions -->
+          <div class="card">
+            <div class="card-header"><h3>⚡ Quick Actions</h3></div>
+            <div class="card-body">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+                <a href="students.html"   class="btn btn-outline" style="justify-content:center">➕ Add Student</a>
+                <a href="courses.html"    class="btn btn-outline" style="justify-content:center">📚 Add Course</a>
+                <a href="attendance.html" class="btn btn-outline" style="justify-content:center">📋 Mark Attendance</a>
+                <a href="marks.html"      class="btn btn-outline" style="justify-content:center">📝 Enter Marks</a>
+                <a href="fees.html"       class="btn btn-outline" style="justify-content:center">💰 Record Fee</a>
+                <a href="users.html"      class="btn btn-outline" style="justify-content:center">👥 Manage Users</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pending Fees Table -->
+        <div class="card" style="margin-top:1.5rem">
+          <div class="card-header">
+            <h3>🔴 Pending Fee Records</h3>
+            <a href="fees.html" class="btn btn-outline btn-sm">View All</a>
+          </div>
+          <div class="table-wrapper" id="a-pending-fees">
+            <div class="loading-overlay"><div class="spinner"></div></div>
+          </div>
+        </div>
+      </div>
+
     </main>
   </div>
 </div>
@@ -93,56 +262,376 @@
 <div id="toast-container"></div>
 <script src="../js/api.js"></script>
 <script>
-  // Auth guard
-  if (!Auth.isLoggedIn()) window.location.href = '../index.html';
+// ── Auth guard ──────────────────────────────────────────────────────
+if (!Auth.isLoggedIn()) window.location.href = '../index.html';
 
-  // Load sidebar
-  fetch('_sidebar.html').then(r => r.text()).then(html => {
-    document.getElementById('sidebar-container').innerHTML = html;
-    initSidebar();
+// ── Sidebar injection ───────────────────────────────────────────────
+fetch('_sidebar.html').then(r => r.text()).then(html => {
+  document.getElementById('sidebar-container').innerHTML = html;
+  initSidebar();
+});
+
+// ── Common header ───────────────────────────────────────────────────
+const role     = Auth.getRole();      // 'ADMIN' | 'FACULTY' | 'STUDENT'
+const fullName = Auth.getUser() || 'User';
+const userId   = parseInt(Auth.getUserId(), 10);
+const firstName = fullName.split(' ')[0];
+
+document.getElementById('topbar-date').textContent =
+  new Date().toLocaleDateString('en-IN', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
+
+// ── Show the correct dashboard ──────────────────────────────────────
+if (role === 'STUDENT') {
+  document.getElementById('student-dashboard').style.display = 'block';
+  document.getElementById('s-welcome-name').textContent = firstName;
+  loadStudentDashboard();
+} else if (role === 'FACULTY') {
+  document.getElementById('faculty-dashboard').style.display = 'block';
+  document.getElementById('f-welcome-name').textContent = firstName;
+  loadFacultyDashboard();
+} else {
+  // ADMIN (default)
+  document.getElementById('admin-dashboard').style.display = 'block';
+  document.getElementById('a-welcome-name').textContent = firstName;
+  loadAdminDashboard();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  STUDENT DASHBOARD
+// ═══════════════════════════════════════════════════════════════════
+async function loadStudentDashboard() {
+  // The student's DB id may differ from user id; we look for matching student
+  // via the report card endpoint which uses student table pk (userId-linked).
+  // Strategy: fetch all students and find match by userId, OR use userId directly
+  // as the student id — the schema shows students.user_id = users.id.
+  // For safety, we try userId first (since sample data aligns them).
+  const sid = userId;
+
+  // Load report card (CGPA + subjects)
+  try {
+    const rc = await API.marks.reportCard(sid);
+    renderStudentReportCard(rc);
+  } catch(e) {
+    document.getElementById('cgpa-ring-fill').style.display = 'none';
+    document.getElementById('s-cgpa').textContent = 'N/A';
+    document.getElementById('s-credits').textContent = '0';
+    document.getElementById('s-dept').textContent = '—';
+  }
+
+  // Load fee balance
+  try {
+    const bal = await API.fees.balance(sid);
+    renderStudentFee(bal);
+  } catch(e) {
+    document.getElementById('s-fee-body').innerHTML =
+      '<p style="color:var(--text-muted);text-align:center;padding:1.5rem">No fee data available.</p>';
+  }
+
+  // Load enrollments → then attendance per course
+  try {
+    const enrollments = await API.courses.studentEnrollments(sid);
+    renderStudentAttendance(enrollments, sid);
+  } catch(e) {
+    document.getElementById('s-attendance-grid').innerHTML =
+      '<p style="color:var(--text-muted);text-align:center;padding:1.5rem">No enrollment data available.</p>';
+  }
+}
+
+function renderStudentReportCard(rc) {
+  const cgpa    = rc.cgpa || 0;
+  const credits = rc.totalCredits || 0;
+  const subjects = rc.subjects || [];
+
+  // Animate CGPA ring (max = 10.0)
+  const pct  = Math.min(cgpa / 10, 1);
+  const circ = 314; // 2π × r(50)
+  const fill = document.getElementById('cgpa-ring-fill');
+  // Trigger reflow for animation
+  fill.style.transition = 'stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1)';
+  setTimeout(() => {
+    fill.style.strokeDashoffset = circ - (circ * pct);
+  }, 100);
+
+  // Colour the ring based on CGPA
+  const ringColor = cgpa >= 8 ? 'var(--success)' : cgpa >= 6 ? 'var(--warning)' : 'var(--danger)';
+  fill.style.stroke = ringColor;
+
+  document.getElementById('s-cgpa').textContent      = cgpa.toFixed(2);
+  document.getElementById('s-credits').textContent   = credits;
+  document.getElementById('s-course-count').textContent = subjects.length;
+  document.getElementById('s-dept').textContent      = rc.department || '—';
+
+  // Subject table
+  if (subjects.length === 0) {
+    document.getElementById('s-subjects-table').innerHTML =
+      '<div class="empty-state"><div class="empty-icon">📭</div><h3>No marks recorded yet.</h3></div>';
+    return;
+  }
+  document.getElementById('s-subjects-table').innerHTML = `
+    <table>
+      <thead><tr>
+        <th>Course</th><th>Credits</th><th>Avg %</th><th>Grade</th><th>Grade Point</th>
+      </tr></thead>
+      <tbody>
+        ${subjects.map(s => `
+          <tr>
+            <td><strong>${s.course}</strong></td>
+            <td>${s.credits}</td>
+            <td>${s.percentage}%</td>
+            <td>${statusBadge(s.grade)}</td>
+            <td><strong>${s.gradePoint}</strong></td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+function renderStudentFee(bal) {
+  const pending = bal.totalPending || 0;
+  const isPaid  = pending === 0;
+  const color   = isPaid ? 'var(--success)' : pending > 20000 ? 'var(--danger)' : 'var(--warning)';
+  document.getElementById('s-fee-body').innerHTML = `
+    <div style="text-align:center;padding:1rem 0">
+      <div style="font-size:2.4rem;font-weight:800;color:${color};font-family:'DM Sans',sans-serif">
+        ${fmtCurrency(pending)}
+      </div>
+      <div style="color:var(--text-muted);font-size:.9rem;margin-top:.4rem">
+        ${isPaid ? '✅ All fees paid — you\'re all clear!' : '⚠️ Outstanding balance due'}
+      </div>
+      <a href="fees.html" class="btn ${isPaid ? 'btn-outline' : 'btn-primary'} btn-sm" style="margin-top:1.25rem">
+        ${isPaid ? 'View Fee History' : 'Pay Now →'}
+      </a>
+    </div>`;
+}
+
+async function renderStudentAttendance(enrollments, sid) {
+  const grid = document.getElementById('s-attendance-grid');
+  if (!enrollments || enrollments.length === 0) {
+    grid.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><h3>No enrollments found.</h3></div>';
+    return;
+  }
+
+  // Fetch attendance % for each enrolled course in parallel
+  const activeEnrollments = enrollments.filter(e => e.status === 'ACTIVE' || !e.status);
+  const results = await Promise.allSettled(
+    activeEnrollments.map(e => API.attendance.percentage(sid, e.course?.id || e.courseId))
+  );
+
+  const cards = activeEnrollments.map((e, i) => {
+    const course   = e.course || {};
+    const courseName = course.courseName || `Course ${e.courseId}`;
+    const courseCode = course.courseCode || '';
+
+    let pct = 0, present = 0, total = 0;
+    if (results[i].status === 'fulfilled') {
+      const d = results[i].value;
+      pct     = d.percentage || 0;
+      present = d.present || 0;
+      total   = d.total || 0;
+    }
+
+    const barColor = pct >= 85 ? 'var(--success)' : pct >= 75 ? 'var(--warning)' : 'var(--danger)';
+    const badge    = pct >= 85 ? 'badge-success' : pct >= 75 ? 'badge-warning' : 'badge-danger';
+
+    return `
+      <div class="attendance-course-card">
+        <div class="att-card-head">
+          <div>
+            <div class="att-course-name">${courseName}</div>
+            <div class="att-course-code">${courseCode}</div>
+          </div>
+          <span class="badge ${badge}">${pct}%</span>
+        </div>
+        <div class="progress" style="margin:.75rem 0 .4rem">
+          <div class="progress-bar" style="width:${pct}%;background:${barColor};transition:width 1s ease"></div>
+        </div>
+        <div class="att-card-foot">
+          <span>${present} present</span>
+          <span>${total} total classes</span>
+        </div>
+      </div>`;
   });
 
-  // Welcome message
-  document.getElementById('welcome-name').textContent = Auth.getUser()?.split(' ')[0] || 'User';
-  document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('en-IN', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
+  grid.innerHTML = `<div class="attendance-courses-grid">${cards.join('')}</div>`;
+}
 
-  // Load stats
-  async function loadStats() {
+// ═══════════════════════════════════════════════════════════════════
+//  FACULTY DASHBOARD
+// ═══════════════════════════════════════════════════════════════════
+async function loadFacultyDashboard() {
+  try {
+    // Get all courses and filter by facultyId = userId
+    // (faculty table: faculty.user_id = users.id; course.faculty_id = faculty.id)
+    // We use the courses API and filter clientside
+    const allCourses = await API.courses.getAll();
+
+    // Try to find the faculty record by loading faculty list
+    let facultyId = null;
     try {
-      const s = await API.dashboard.stats();
-      document.getElementById('stat-students').textContent    = s.totalStudents;
-      document.getElementById('stat-courses').textContent     = s.totalCourses;
-      document.getElementById('stat-enrollments').textContent = s.totalEnrollments;
-      document.getElementById('stat-fees').textContent        = fmtCurrency(s.totalFeePending).replace('₹','').trim();
+      const facList = await API.faculty.getAll();
+      const myFac   = facList.find(f => f.user?.id === userId || f.userId === userId);
+      if (myFac) facultyId = myFac.id;
+    } catch(e) {}
 
-      // Year-wise bar chart (pure CSS)
-      const max = Math.max(s.year1Students, s.year2Students, s.year3Students, s.year4Students, 1);
-      const yearEl = document.getElementById('year-chart');
-      yearEl.innerHTML = [1,2,3,4].map(yr => {
-        const count = s[`year${yr}Students`] || 0;
-        const pct = Math.round((count / max) * 100);
-        return `
-          <div style="margin-bottom:1rem;">
-            <div style="display:flex;justify-content:space-between;font-size:.85rem;margin-bottom:.3rem;">
-              <span>Year ${yr}</span>
-              <strong>${count} students</strong>
-            </div>
-            <div class="progress">
-              <div class="progress-bar" style="width:${pct}%"></div>
-            </div>
-          </div>`;
-      }).join('');
-    } catch (err) {
-      toast('Could not load dashboard stats: ' + err.message, 'error');
-    }
+    const myCourses = facultyId
+      ? allCourses.filter(c => c.faculty?.id === facultyId || c.facultyId === facultyId)
+      : allCourses; // Fallback: show all if we can't determine faculty id
+
+    // Count today's classes from timetable
+    const days = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+    const todayDay = days[new Date().getDay()];
+    let todayCount = 0;
+
+    // Fetch enrollments for each course to count students
+    const enrollmentResults = await Promise.allSettled(
+      myCourses.map(c => API.courses.enrollments(c.id))
+    );
+
+    let totalStudents = 0;
+    const enriched = myCourses.map((c, i) => {
+      const enrollments = enrollmentResults[i].status === 'fulfilled'
+        ? enrollmentResults[i].value.filter(e => e.status === 'ACTIVE' || !e.status)
+        : [];
+      totalStudents += enrollments.length;
+      return { ...c, studentCount: enrollments.length };
+    });
+
+    document.getElementById('f-stat-courses').textContent  = myCourses.length;
+    document.getElementById('f-stat-students').textContent = totalStudents;
+    document.getElementById('f-stat-today').textContent    = todayCount + ' classes';
+
+    renderFacultyCourses(enriched);
+  } catch(e) {
+    toast('Could not load faculty data: ' + e.message, 'error');
+  }
+}
+
+function renderFacultyCourses(courses) {
+  const grid = document.getElementById('f-courses-grid');
+  if (courses.length === 0) {
+    grid.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><h3>No courses assigned yet.</h3></div>';
+    return;
+  }
+  grid.innerHTML = `<div class="faculty-courses-grid">
+    ${courses.map(c => `
+      <div class="faculty-course-card">
+        <div class="fcc-code">${c.courseCode || '—'}</div>
+        <div class="fcc-name">${c.courseName}</div>
+        <div class="fcc-meta">
+          <span>📅 Sem ${c.semester || '—'}</span>
+          <span>⭐ ${c.credits} credits</span>
+          <span>🎓 ${c.studentCount} students</span>
+        </div>
+        <div class="fcc-actions">
+          <a href="attendance.html" class="btn btn-primary btn-sm" style="flex:1;justify-content:center">📋 Attendance</a>
+          <a href="marks.html"      class="btn btn-amber   btn-sm" style="flex:1;justify-content:center">📝 Marks</a>
+        </div>
+      </div>`).join('')}
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  ADMIN DASHBOARD
+// ═══════════════════════════════════════════════════════════════════
+async function loadAdminDashboard() {
+  // Global stats
+  try {
+    const s = await API.dashboard.stats();
+    document.getElementById('a-stat-students').textContent    = s.totalStudents;
+    document.getElementById('a-stat-courses').textContent     = s.totalCourses;
+    document.getElementById('a-stat-enrollments').textContent = s.totalEnrollments;
+    document.getElementById('a-stat-fees').textContent        =
+      fmtCurrency(s.totalFeePending).replace('₹','').trim();
+
+    // Year-wise chart
+    const max = Math.max(s.year1Students, s.year2Students, s.year3Students, s.year4Students, 1);
+    document.getElementById('a-year-chart').innerHTML = [1,2,3,4].map(yr => {
+      const count = s[`year${yr}Students`] || 0;
+      const pct   = Math.round((count / max) * 100);
+      const barColor = ['var(--navy-light)','var(--amber)','var(--success)','var(--info)'][yr-1];
+      return `
+        <div style="margin-bottom:1rem">
+          <div style="display:flex;justify-content:space-between;font-size:.85rem;margin-bottom:.3rem">
+            <span>Year ${yr}</span>
+            <strong>${count} students</strong>
+          </div>
+          <div class="progress">
+            <div class="progress-bar" style="width:${pct}%;background:${barColor}"></div>
+          </div>
+        </div>`;
+    }).join('');
+  } catch(e) {
+    toast('Could not load dashboard stats: ' + e.message, 'error');
   }
 
-  loadStats();
-
-  // Responsive lower grid
-  if (window.innerWidth < 700) {
-    document.getElementById('lower-grid').style.gridTemplateColumns = '1fr';
+  // Pending fees table
+  try {
+    const pending = await API.fees.pending();
+    renderAdminPendingFees(pending);
+  } catch(e) {
+    document.getElementById('a-pending-fees').innerHTML =
+      '<div class="empty-state"><div class="empty-icon">✅</div><h3>No pending fees.</h3></div>';
   }
+}
+
+function renderAdminPendingFees(fees) {
+  const el = document.getElementById('a-pending-fees');
+  if (!fees || fees.length === 0) {
+    el.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">✅</div>
+      <h3>All fees are cleared!</h3>
+      <p>No pending fee records at this time.</p>
+    </div>`;
+    return;
+  }
+
+  // Sort by due date ascending (oldest first)
+  fees.sort((a,b) => {
+    const da = a.dueDate ? new Date(a.dueDate) : new Date('9999');
+    const db = b.dueDate ? new Date(b.dueDate) : new Date('9999');
+    return da - db;
+  });
+
+  el.innerHTML = `
+    <table>
+      <thead><tr>
+        <th>Student</th><th>Fee Type</th><th>Amount Due</th>
+        <th>Amount Paid</th><th>Due Date</th><th>Status</th>
+      </tr></thead>
+      <tbody>
+        ${fees.slice(0, 15).map(f => {
+          const studentName = f.student
+            ? `${f.student.firstName} ${f.student.lastName}`
+            : `Student #${f.studentId}`;
+          const due = f.amount - (f.amountPaid || 0);
+          const isOverdue = f.dueDate && new Date(f.dueDate) < new Date();
+          return `
+            <tr class="${isOverdue ? 'overdue-row' : ''}">
+              <td>
+                <strong>${studentName}</strong>
+                ${f.student?.studentId ? `<br><span class="text-muted-sm">${f.student.studentId}</span>` : ''}
+              </td>
+              <td>${f.feeType || '—'}</td>
+              <td style="color:var(--danger);font-weight:700">${fmtCurrency(due)}</td>
+              <td>${fmtCurrency(f.amountPaid || 0)}</td>
+              <td>
+                ${fmtDate(f.dueDate)}
+                ${isOverdue ? '<br><span class="overdue-tag">Overdue</span>' : ''}
+              </td>
+              <td>${statusBadge(f.status)}</td>
+            </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+    ${fees.length > 15 ? `<div style="padding:.75rem 1.25rem;font-size:.83rem;color:var(--text-muted);text-align:center">
+      Showing 15 of ${fees.length} records. <a href="fees.html">View all →</a>
+    </div>` : ''}`;
+}
+
+// ── Responsive lower grid ───────────────────────────────────────────
+const adminLower = document.getElementById('admin-lower-grid');
+if (adminLower && window.innerWidth < 768) {
+  adminLower.style.gridTemplateColumns = '1fr';
+}
 </script>
 </body>
 </html>

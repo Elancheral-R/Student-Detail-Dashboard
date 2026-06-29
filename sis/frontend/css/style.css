@@ -597,3 +597,281 @@ tbody td { padding: .9rem 1.1rem; font-size: .9rem; vertical-align: middle; }
   .filter-bar .form-select { max-width: 100%; }
   .topbar-search { display: none; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   ROLE-SPECIFIC DASHBOARD COMPONENTS
+═══════════════════════════════════════════════════════════════════ */
+
+/* ── Dashboard Role Badge ─────────────────────────────────────────── */
+.dashboard-role-badge {
+  display: inline-block;
+  padding: .25rem .8rem;
+  border-radius: 999px;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  vertical-align: middle;
+  margin-left: .6rem;
+  font-family: 'DM Sans', sans-serif;
+}
+.dashboard-role-badge.student { background: var(--info-bg);    color: var(--info); }
+.dashboard-role-badge.faculty { background: var(--warning-bg); color: var(--warning); }
+.dashboard-role-badge.admin   { background: var(--navy);       color: var(--white); }
+
+/* ── Student: Top Grid ────────────────────────────────────────────── */
+.student-top-grid {
+  display: grid;
+  grid-template-columns: 260px 1fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+/* ── CGPA Ring Card ───────────────────────────────────────────────── */
+.cgpa-card { overflow: visible; }
+.cgpa-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.5rem 1rem;
+}
+.cgpa-ring-wrap {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  flex-shrink: 0;
+}
+.cgpa-ring {
+  width: 140px;
+  height: 140px;
+  transform: rotate(-90deg);
+}
+.cgpa-ring-bg {
+  fill: none;
+  stroke: var(--ivory-dark);
+  stroke-width: 10;
+}
+.cgpa-ring-fill {
+  fill: none;
+  stroke: var(--success);
+  stroke-width: 10;
+  stroke-linecap: round;
+  stroke-dasharray: 314;
+  stroke-dashoffset: 314;
+  transition: stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1);
+}
+.cgpa-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.cgpa-value {
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: var(--navy);
+  line-height: 1;
+  font-family: 'DM Sans', sans-serif;
+}
+.cgpa-label {
+  font-size: .72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  margin-top: .15rem;
+}
+.cgpa-meta {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: .6rem;
+}
+.cgpa-meta-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: .85rem;
+  padding: .4rem .6rem;
+  background: var(--ivory);
+  border-radius: var(--radius);
+}
+.cgpa-meta-label { color: var(--text-muted); }
+.cgpa-meta-val   { font-weight: 700; color: var(--navy); }
+
+/* ── Student: Fee Summary Card ────────────────────────────────────── */
+.fee-summary-card .card-body {
+  min-height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Student: Quick Links ─────────────────────────────────────────── */
+.student-quick-links {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .75rem;
+}
+.student-quick-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .4rem;
+  padding: 1rem .5rem;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--border);
+  background: var(--ivory);
+  color: var(--text-main);
+  font-size: 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+  text-decoration: none;
+}
+.student-quick-btn:hover {
+  border-color: var(--navy);
+  background: var(--navy);
+  color: var(--white);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+.student-quick-btn span { font-size: .8rem; }
+
+/* ── Student: Attendance Grid ─────────────────────────────────────── */
+.attendance-courses-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+}
+.attendance-course-card {
+  background: var(--ivory);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.1rem;
+  transition: box-shadow var(--transition), transform var(--transition);
+}
+.attendance-course-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+.att-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: .5rem;
+}
+.att-course-name {
+  font-size: .9rem;
+  font-weight: 700;
+  color: var(--navy);
+  line-height: 1.25;
+}
+.att-course-code {
+  font-size: .75rem;
+  color: var(--text-muted);
+  margin-top: .15rem;
+}
+.att-card-foot {
+  display: flex;
+  justify-content: space-between;
+  font-size: .77rem;
+  color: var(--text-muted);
+}
+
+/* ── Faculty: Courses Grid ────────────────────────────────────────── */
+.faculty-courses-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.25rem;
+}
+.faculty-course-card {
+  background: var(--ivory);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+  transition: box-shadow var(--transition), transform var(--transition);
+}
+.faculty-course-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+  border-color: var(--navy-light);
+}
+.fcc-code {
+  display: inline-block;
+  background: var(--navy);
+  color: var(--white);
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  padding: .2rem .65rem;
+  border-radius: 6px;
+  width: fit-content;
+}
+.fcc-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--navy);
+  line-height: 1.3;
+}
+.fcc-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  font-size: .78rem;
+  color: var(--text-muted);
+}
+.fcc-actions {
+  display: flex;
+  gap: .5rem;
+  margin-top: .25rem;
+}
+
+/* ── Admin: Two-column lower grid ─────────────────────────────────── */
+.admin-lower-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+/* ── Admin: Pending fees table ────────────────────────────────────── */
+.overdue-row { background: var(--danger-bg) !important; }
+.overdue-tag {
+  display: inline-block;
+  background: var(--danger);
+  color: var(--white);
+  font-size: .65rem;
+  font-weight: 700;
+  padding: .1rem .4rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.text-muted-sm {
+  font-size: .75rem;
+  color: var(--text-muted);
+}
+
+/* ── Responsive: Role dashboards ──────────────────────────────────── */
+@media (max-width: 960px) {
+  .student-top-grid { grid-template-columns: 1fr 1fr; }
+  .cgpa-card        { grid-column: 1 / -1; }
+  .cgpa-body        { flex-direction: row; justify-content: center; align-items: center; }
+  .cgpa-meta        { max-width: 200px; }
+}
+
+@media (max-width: 640px) {
+  .student-top-grid         { grid-template-columns: 1fr; }
+  .admin-lower-grid         { grid-template-columns: 1fr; }
+  .faculty-courses-grid     { grid-template-columns: 1fr; }
+  .attendance-courses-grid  { grid-template-columns: 1fr; }
+  .cgpa-body                { flex-direction: column; }
+  .student-quick-links      { grid-template-columns: 1fr 1fr; }
+}
+
